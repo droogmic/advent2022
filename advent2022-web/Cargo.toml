@@ -1,0 +1,13 @@
+[package]
+name = "advent2022-web"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+advent2022-lib = { path = "../advent2022-lib" }
+console_log = { version = "0.2", optional = true, features = ["color"] }
+log = "0.4"
+yew = "0.20"
+
+[features]
+default = ["console_log"]

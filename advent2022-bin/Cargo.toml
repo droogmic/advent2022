@@ -1,0 +1,13 @@
+[package]
+name = "advent2022-bin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+advent2022-lib = { path = "../advent2022-lib" }
+color-eyre = "0.6"
+colored = "2"
+indicatif = "0.17"
+log = "0.4"
+pretty_env_logger = "0.4"
+structopt = "0.3"

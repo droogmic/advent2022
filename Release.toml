@@ -1,0 +1,5 @@
+[build]
+target = "advent2022-web/index.html"
+public_url = "/advent2022/"
+release = true
+dist = "dist"

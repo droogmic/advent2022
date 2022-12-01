@@ -1,0 +1,3 @@
+[workspace]
+members = ["advent2022-lib", "advent2022-bin", "advent2022-web"]
+default-members = ["advent2022-lib", "advent2022-bin"]
