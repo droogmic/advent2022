@@ -27,4 +27,4 @@ git add *.wasm
 git add *.css
 git commit -am "$1"
 git push origin HEAD
-git switch master
+git switch main
