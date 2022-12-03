@@ -6,7 +6,7 @@ set -o pipefail
 set -x
 
 BRANCH="$(git rev-parse --abbrev-ref HEAD)"
-if [[ "$BRANCH" != "master" ]]; then
+if [[ "$BRANCH" != "main" ]]; then
   echo 'Aborting script';
   exit 1;
 fi
