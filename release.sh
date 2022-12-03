@@ -16,15 +16,15 @@ if [ -z "$1" ]
 fi
 trunk --config Release.toml build
 git switch gh-pages
-git rm index.html
-git rm index-*.js
-git rm index-*.wasm
-git rm main-*.css
+git rm *.html
+git rm *.js
+git rm *.wasm
+git rm *.css
 cp dist/* ./
-git add index.html
-git add index-*.js
-git add index-*.wasm
-git add main-*.css
+git add *.html
+git add *.js
+git add *.wasm
+git add *.css
 git commit -am "$1"
 git push origin HEAD
 git switch master
