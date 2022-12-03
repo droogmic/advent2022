@@ -48,6 +48,7 @@ pub const DAY: Day<Calories, usize> = Day {
 
 #[cfg(test)]
 mod tests {
+    // use test_log::test;
     // use super::*;
     // use crate::get_input;
 }

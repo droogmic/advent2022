@@ -2,6 +2,8 @@
 mod tests {
     use std::fs::read_to_string;
 
+    use test_log::test;
+
     use crate::get_days;
 
     #[test]

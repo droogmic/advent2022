@@ -4,7 +4,10 @@ use std::fs;
 use std::num::ParseIntError;
 use std::rc::Rc;
 
+use strum::ParseError as StrumParseError;
+
 pub mod day01;
+pub mod day02;
 
 mod test;
 
@@ -13,11 +16,18 @@ pub enum ParseError {
     Empty,
     Int(ParseIntError),
     Str(String),
+    Strum(StrumParseError),
 }
 
 impl From<ParseIntError> for ParseError {
     fn from(value: ParseIntError) -> Self {
         Self::Int(value)
+    }
+}
+
+impl From<StrumParseError> for ParseError {
+    fn from(value: StrumParseError) -> Self {
+        Self::Strum(value)
     }
 }
 
@@ -104,6 +114,7 @@ impl<D: 'static, O: 'static + std::fmt::Display> DayTrait for Day<D, O> {}
 pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     let mut days: BTreeMap<usize, Box<dyn DayTrait + 'static>> = BTreeMap::new();
     days.insert(1, Box::new(day01::DAY));
+    days.insert(2, Box::new(day02::DAY));
     days
 }
 

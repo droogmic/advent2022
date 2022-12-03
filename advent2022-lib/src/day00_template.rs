@@ -11,7 +11,7 @@ pub fn part1(something: &Something) -> PartOutput<usize> {
     PartOutput { answer: 0 }
 }
 
-pub fn part2(something: &Something) -> PartOutput<usize> {
+pub fn part2(_something: &Something) -> PartOutput<usize> {
     PartOutput { answer: 0 }
 }
 
@@ -22,18 +22,19 @@ pub const DAY: Day<Something, usize> = Day {
         "Foobar foobar foobar {answer}",
     ),
     calc: DayCalc {
-        parse: parse,
+        parse,
         part1,
         part2,
     },
-    example: include_str!("../examples/day00.txt"),
+    example: include_str!("../../examples/day00.in.txt"),
 };
 
 #[cfg(test)]
 mod tests {
+    use test_log::test;
+
     use super::*;
     use crate::get_input;
-    use test_log::test;
 
     #[test]
     fn test_example_part1() {

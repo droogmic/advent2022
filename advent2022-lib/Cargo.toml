@@ -11,6 +11,8 @@ pathfinding = "4"
 recap = "0.1.2"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
+strum = "0.24"
+strum_macros = "0.24"
 
 [dev-dependencies]
 criterion = "0.4"
