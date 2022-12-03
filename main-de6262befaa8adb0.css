@@ -1,0 +1,162 @@
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+a,
+button,
+input {
+  font-family: "Source Code Pro", monospace;
+}
+
+body {
+  background: #0e0e16;
+  color: #cccccc;
+}
+
+section {
+  padding: 1em 0em;
+  margin: 0em;
+}
+
+section.day-odd {
+  background: #22222b;
+}
+
+h1 {
+  color: rgb(0, 204, 0);
+  font-weight: 400;
+  outline-color: rgb(0, 204, 0);
+  text-decoration: rgb(0, 204, 0);
+  text-decoration-color: rgb(0, 204, 0);
+  text-shadow: rgb(0, 204, 0) 0px 0px 2px, rgb(0, 204, 0) 0px 0px 5px;
+  white-space: nowrap;
+  -moz-text-size-adjust: none
+}
+
+h2,
+h3,
+h4,
+h5 {
+  padding: 0;
+  margin: 0;
+}
+
+pre {
+  background: #000;
+  border: 1px solid rgb(64, 64, 64);
+  border-left: 3px solid #200e07;
+  color: rgb(196, 196, 196);
+  page-break-inside: avoid;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 80em;
+  overflow: auto;
+  display: block;
+  word-wrap: break-word;
+  padding: 0.2em 0.5em;
+  margin: 0 0 0 4em;
+}
+
+pre.collapsed {
+  height: 2.4em;
+  overflow: hidden;
+  border-bottom: 8px solid rgb(64, 64, 64);
+}
+
+button,
+input,
+.button,
+.custom-file-upload {
+  background-color: #323253;
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: inline-block;
+  padding: 0.5em 1em;
+  margin: 0.2em;
+  text-align: center;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+button:hover,
+input:hover,
+.button:hover {
+  background-color: #333;
+}
+
+button:active,
+input:active,
+.button:active {
+  background-color: rgb(78, 18, 18);
+}
+
+.button.disabled {
+  background-color: #3c3c53;
+  cursor: default;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+p {
+  padding: 0;
+  margin: 0 0 0 4em;
+  font-size: 12px;
+}
+
+a {
+  padding: 0 1em;
+}
+
+a:link {
+  color: #ccc;
+}
+
+a:visited {
+  color: #b99
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  max-width: 1040px;
+}
+
+.row-reverse {
+  flex-direction: row-reverse;
+}
+
+.row-item {
+  padding: 0;
+  margin: 0 1em;
+  align-self: center
+}
+
+.row-item.day-key {
+  flex: 0 1 auto
+}
+
+.row-item.day-title {
+  flex: 1 1 auto
+}
+
+.row-item.day-url {
+  flex: 0 1 none
+}
+
+.row-item.day-collapse {
+  flex: 0 1 auto
+}
+
+.row-item.day-run {
+  flex: 1 1 auto
+}
+
+.row-item.day-upload {
+  flex: 0 1 none
+}
