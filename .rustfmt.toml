@@ -1,0 +1,5 @@
+group_imports = "StdExternalCrate"
+imports_granularity = "Module"
+match_block_trailing_comma = true
+trailing_semicolon = true
+unstable_features = true

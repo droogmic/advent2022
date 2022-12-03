@@ -7,7 +7,8 @@ edition = "2021"
 advent2022-lib = { path = "../advent2022-lib" }
 console_log = { version = "0.2", optional = true, features = ["color"] }
 log = "0.4"
-yew = "0.20"
+yew = { version = "0.20", features = ["csr"] }
+gloo-file = "0.2"
 
 [features]
 default = ["console_log"]

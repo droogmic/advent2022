@@ -1,18 +1,27 @@
 use std::collections::btree_map::BTreeMap;
-use std::format;
+use std::fmt::Display;
 use std::fs;
+use std::num::ParseIntError;
 use std::rc::Rc;
 
 pub mod day01;
 
-#[derive(Debug, Clone)]
+mod test;
+
+#[derive(Debug)]
 pub enum ParseError {
     Empty,
-    Int(std::num::ParseIntError),
+    Int(ParseIntError),
     Str(String),
 }
 
-impl std::fmt::Display for ParseError {
+impl From<ParseIntError> for ParseError {
+    fn from(value: ParseIntError) -> Self {
+        Self::Int(value)
+    }
+}
+
+impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "invalid input for day")
     }
@@ -97,10 +106,10 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
 }
 
 pub fn get_input(day: usize) -> String {
-    match fs::read_to_string(format!("inputs/day{:02}.txt", day))
-        .or_else(|_| fs::read_to_string(format!("../inputs/day{:02}.txt", day)))
+    match fs::read_to_string(format!("inputs/day{:02}.in.txt", day))
+        .or_else(|_| fs::read_to_string(format!("../inputs/day{:02}.in.txt", day)))
     {
-        Err(e) => panic!("Err: {}, inputs/day{:02}.txt", e, day),
+        Err(e) => panic!("Err: {}, inputs/day{:02}.in.txt", e, day),
         Ok(string) => string,
     }
 }

@@ -1,39 +1,49 @@
-use crate::{Day, DayCalc, ParseError, ParseResult, PartOutput};
+use crate::{Day, DayCalc, ParseResult, PartOutput};
 
-use pyo3::prelude::*;
+pub struct Calories(Vec<Vec<usize>>);
 
-pub fn parse(input: &str) -> ParseResult<()> {
-    let python_script = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/../python/day01.py"));
-    let from_python = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-        let app: Py<PyAny> = PyModule::from_code(py, python_script, "", "")?
-            .getattr("run")?
-            .into();
-        app.call0(py)
-    });
-    println!("py: {:?}", python_script);
-    Ok(())
+pub fn parse(input: &str) -> ParseResult<Calories> {
+    let calories = input
+        .split("\n\n")
+        .map(|block| block.lines().map(|line| line.parse::<usize>()).collect())
+        .collect::<Result<_, _>>()?;
+    Ok(Calories(calories))
 }
 
-pub fn part1(_: &()) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part1(calories: &Calories) -> PartOutput<usize> {
+    let max_calories = calories
+        .0
+        .iter()
+        .map(|items| items.iter().sum())
+        .max()
+        .unwrap();
+    PartOutput {
+        answer: max_calories,
+    }
 }
 
-pub fn part2(_: &()) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(calories: &Calories) -> PartOutput<usize> {
+    let mut sum_calories: Vec<usize> = calories.0.iter().map(|items| items.iter().sum()).collect();
+    sum_calories.sort_unstable();
+    sum_calories.reverse();
+    let max_3_calories = sum_calories.iter().take(3).sum();
+    PartOutput {
+        answer: max_3_calories,
+    }
 }
 
-pub const DAY: Day<(), usize> = Day {
-    title: "Sonar Sweep",
+pub const DAY: Day<Calories, usize> = Day {
+    title: "Calorie Counting",
     display: (
-        "There are {answer} measurements larger than the previous measurement",
-        "There are {answer} sums larger than the previous sum",
+        "The Elf carrying the most is carrying {answer} calories.",
+        "The 3 Elves carrying the most are carrying {answer} calories.",
     ),
     calc: DayCalc {
         parse: parse,
         part1,
         part2,
     },
-    example: "199\n200\n208\n210\n200\n207\n240\n269\n260\n263",
+    example: include_str!("../../examples/day01.in.txt"),
 };
 
 #[cfg(test)]
