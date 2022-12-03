@@ -102,7 +102,7 @@ pub fn part2(sacks: &RuckSacks) -> PartOutput<usize> {
             log::error!("{elf_group:?} -> {intersection:?}");
             panic!();
         }
-        intersection.iter().next().unwrap().clone()
+        intersection.into_iter().next().unwrap()
     });
     PartOutput {
         answer: badges.map(|item| item.0).sum(),
