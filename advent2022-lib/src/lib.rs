@@ -8,7 +8,7 @@ use strum::ParseError as StrumParseError;
 
 pub mod day01;
 pub mod day02;
-
+pub mod day03;
 mod test;
 
 #[derive(Debug)]
@@ -115,6 +115,7 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     let mut days: BTreeMap<usize, Box<dyn DayTrait + 'static>> = BTreeMap::new();
     days.insert(1, Box::new(day01::DAY));
     days.insert(2, Box::new(day02::DAY));
+    days.insert(3, Box::new(day03::DAY));
     days
 }
 

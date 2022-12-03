@@ -1,9 +1,7 @@
+use advent2022_lib::{get_days, get_input};
 use color_eyre::Report;
 use colored::*;
 use structopt::StructOpt;
-
-use advent2022_lib::get_days;
-use advent2022_lib::get_input;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -14,6 +12,9 @@ struct Cli {
 
     #[structopt(long)]
     parallel: bool,
+
+    #[structopt(long)]
+    example: bool,
 }
 
 fn print_day<O: std::fmt::Display>(
@@ -36,7 +37,7 @@ fn print_day<O: std::fmt::Display>(
 fn main() -> Result<(), Report> {
     setup()?;
 
-    println!("{}", "Advent Of Code 2020".bold().blue());
+    println!("{}", "Advent Of Code 2022".bold().blue());
     println!();
 
     let args = Cli::from_args();
@@ -44,17 +45,27 @@ fn main() -> Result<(), Report> {
 
     if args.all {
         for (day_num, day) in days.into_iter() {
-            let (part1, part2) = day.both(&get_input(day_num)).expect("invalid input");
+            let input = if args.example {
+                day.get_example().to_owned()
+            } else {
+                get_input(day_num)
+            };
+            let (part1, part2) = day.both(&input).expect("invalid input");
             print_day(day_num, day.get_display(), (part1, part2));
         }
     } else if args.parallel {
         let threads = get_days().into_iter().map(|(day_num, day)| {
             println!("Spawn day {}", day_num);
             std::thread::spawn(move || {
+                let input = if args.example {
+                    day.get_example().to_owned()
+                } else {
+                    get_input(day_num)
+                };
                 (
                     day_num,
                     day.get_display(),
-                    day.both(&get_input(day_num)).expect("invalid input"),
+                    day.both(&input).expect("invalid input"),
                 )
             })
         });
@@ -70,10 +81,15 @@ fn main() -> Result<(), Report> {
             None => {
                 let (last_day_num, last_day) = days.iter().next_back().unwrap();
                 (*last_day_num, last_day)
-            }
+            },
             Some(day_num) => (day_num, days.get(&day_num).unwrap()),
         };
-        let (part1, part2) = day.both(&get_input(day_num)).expect("invalid input");
+        let input = if args.example {
+            day.get_example().to_owned()
+        } else {
+            get_input(day_num)
+        };
+        let (part1, part2) = day.both(&input).expect("invalid input");
         print_day(day_num, day.get_display(), (part1, part2));
     }
 
