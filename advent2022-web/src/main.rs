@@ -1,24 +1,24 @@
+use advent2022_lib::get_days;
 use yew::prelude::*;
 
-use advent2022_lib::get_days;
+use crate::web::{DayBox, DayProps, DayView};
 
-use crate::web::{DayProps, DayView};
-
+mod file;
 mod web;
 
 #[function_component]
 fn App() -> Html {
-    let days = get_days();
+    let mut days = get_days();
+    let mut day_nums: Vec<usize> = days.keys().copied().collect();
+    day_nums.sort_unstable();
     html! {
         <div>
             <h1>{"Advent of Code"}</h1>
             {
-                for days.iter().map(|(day_num, day)| {
+                for day_nums.into_iter().map(|day_num| {
                     let props = yew::props!(DayProps {
-                        day_num: *day_num,
-                        title: day.get_title(),
-                        example: day.get_example().to_owned(),
-                        text_format: day.get_display(),
+                        day_num: day_num,
+                        day: DayBox(days.remove(&day_num).unwrap()),
                     });
                     html!{
                         <DayView ..props/>

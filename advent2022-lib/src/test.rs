@@ -1,11 +1,20 @@
 #[cfg(test)]
 mod tests {
-    use crate::{day01, get_days};
+    use std::fs::read_to_string;
+
+    use crate::get_days;
 
     #[test]
-    fn test_days() {
+    fn test_days_examples() {
         let days = get_days();
-        let result = (day01::DAY.calc.part1)(&(day01::DAY.calc.parse)(day01::DAY.example).unwrap());
-        assert_eq!(result.answer, 24000)
+        for (day_num, day) in days {
+            let (part1, part2) = day.both(day.get_example()).unwrap();
+            let expected =
+                read_to_string(&format!("../examples/day{:02}.out.txt", day_num)).unwrap();
+            let expected_part1 = expected.lines().next().unwrap();
+            let expected_part2 = expected.lines().last().unwrap();
+            assert_eq!(part1, expected_part1);
+            assert_eq!(part2, expected_part2)
+        }
     }
 }

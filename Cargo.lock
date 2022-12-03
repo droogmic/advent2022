@@ -53,7 +53,9 @@ dependencies = [
  "advent2022-lib",
  "console_log",
  "gloo-file",
+ "js-sys",
  "log",
+ "web-sys",
  "yew",
 ]
 

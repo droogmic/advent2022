@@ -36,10 +36,10 @@ pub const DAY: Day<Calories, usize> = Day {
     title: "Calorie Counting",
     display: (
         "The Elf carrying the most is carrying {answer} calories.",
-        "The 3 Elves carrying the most are carrying {answer} calories.",
+        "The 3 Elves carrying the most are carrying {answer} calories together.",
     ),
     calc: DayCalc {
-        parse: parse,
+        parse,
         part1,
         part2,
     },

@@ -1,4 +1,12 @@
-body, h1, h2, h3, h4, h5, a, button, input {
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+a,
+button,
+input {
   font-family: "Source Code Pro", monospace;
 }
 
@@ -26,7 +34,11 @@ h1 {
   white-space: nowrap;
   -moz-text-size-adjust: none
 }
-h2, h3, h4, h5 {
+
+h2,
+h3,
+h4,
+h5 {
   padding: 0;
   margin: 0;
 }
@@ -47,11 +59,17 @@ pre {
   padding: 0.2em 0.5em;
   margin: 0 0 0 4em;
 }
+
 pre.collapsed {
+  height: 2.4em;
+  overflow: hidden;
   border-bottom: 8px solid rgb(64, 64, 64);
 }
 
-button, input, .button, .custom-file-upload {
+button,
+input,
+.button,
+.custom-file-upload {
   background-color: #323253;
   border: none;
   color: white;
@@ -63,32 +81,42 @@ button, input, .button, .custom-file-upload {
   text-decoration: none;
   font-size: 14px;
 }
-button:hover, input:hover, .button:hover {
+
+button:hover,
+input:hover,
+.button:hover {
   background-color: #333;
 }
-button:active, input:active, .button:active {
+
+button:active,
+input:active,
+.button:active {
   background-color: rgb(78, 18, 18);
 }
+
 .button.disabled {
   background-color: #3c3c53;
   cursor: default;
 }
+
 input[type="file"] {
   display: none;
 }
 
 p {
-  padding: 0  ;
+  padding: 0;
   margin: 0 0 0 4em;
-  font-size: 12px;  
+  font-size: 12px;
 }
 
 a {
   padding: 0 1em;
 }
+
 a:link {
   color: #ccc;
 }
+
 a:visited {
   color: #b99
 }
@@ -98,29 +126,37 @@ a:visited {
   flex-wrap: wrap;
   max-width: 1040px;
 }
+
 .row-reverse {
   flex-direction: row-reverse;
 }
+
 .row-item {
   padding: 0;
   margin: 0 1em;
   align-self: center
 }
+
 .row-item.day-key {
   flex: 0 1 auto
 }
+
 .row-item.day-title {
   flex: 1 1 auto
 }
+
 .row-item.day-url {
   flex: 0 1 none
 }
+
 .row-item.day-collapse {
   flex: 0 1 auto
 }
+
 .row-item.day-run {
   flex: 1 1 auto
 }
+
 .row-item.day-upload {
   flex: 0 1 none
 }

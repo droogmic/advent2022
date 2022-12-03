@@ -65,28 +65,30 @@ impl<D, O> Printable for Day<D, O> {
     }
 }
 
+type DayResult = ParseResult<(String, String)>;
+
 pub trait Calculable {
-    fn both(&self, input: &str) -> ParseResult<(String, String)>;
-    fn get_both_func(&self) -> Rc<dyn Fn(&str) -> ParseResult<(String, String)>>;
+    fn both(&self, input: &str) -> DayResult;
+    fn get_both_func(&self) -> Rc<dyn Fn(&str) -> DayResult>;
 }
 
 impl<D: 'static, O: 'static + std::fmt::Display> Calculable for Day<D, O> {
-    fn both(&self, input: &str) -> ParseResult<(String, String)> {
+    fn both(&self, input: &str) -> DayResult {
         let parse = self.calc.parse;
         let part1 = self.calc.part1;
         let part2 = self.calc.part2;
-        let input = parse(&input.to_string())?;
+        let input = parse(input)?;
         Ok((
             part1(&input).answer.to_string(),
             part2(&input).answer.to_string(),
         ))
     }
-    fn get_both_func(&self) -> Rc<dyn Fn(&str) -> ParseResult<(String, String)>> {
+    fn get_both_func(&self) -> Rc<dyn Fn(&str) -> DayResult> {
         let parse = self.calc.parse;
         let part1 = self.calc.part1;
         let part2 = self.calc.part2;
         Rc::new(move |input: &str| {
-            let input = parse(&input.to_string())?;
+            let input = parse(input)?;
             Ok((
                 part1(&input).answer.to_string(),
                 part2(&input).answer.to_string(),
