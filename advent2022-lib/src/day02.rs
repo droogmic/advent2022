@@ -19,10 +19,10 @@ impl Outcome {
             Self::Win => 6,
         }
     }
-    /// Shape to get desired outcome
+    /// Shape to play against opponent to get outcome
     const fn shape(&self, opponent: &Shape) -> Shape {
         match self {
-            Self::Lose => opponent.next().next(),
+            Self::Lose => opponent.prev(),
             Self::Draw => *opponent,
             Self::Win => opponent.next(),
         }
@@ -51,23 +51,21 @@ impl Shape {
             Shape::Scissors => Shape::Rock,
         }
     }
+    const fn prev(&self) -> Self {
+        self.next().next()
+    }
+    const fn eq(&self, other: &Self) -> bool {
+        self.score_shape() == other.score_shape()
+    }
     const fn outcome(&self, other: &Self) -> Outcome {
-        match self {
-            Self::Rock => match other {
-                Shape::Rock => Outcome::Draw,
-                Shape::Paper => Outcome::Lose,
-                Shape::Scissors => Outcome::Win,
-            },
-            Self::Paper => match other {
-                Shape::Rock => Outcome::Win,
-                Shape::Paper => Outcome::Draw,
-                Shape::Scissors => Outcome::Lose,
-            },
-            Self::Scissors => match other {
-                Shape::Rock => Outcome::Lose,
-                Shape::Paper => Outcome::Win,
-                Shape::Scissors => Outcome::Draw,
-            },
+        if self.eq(other) {
+            Outcome::Draw
+        } else if self.next().eq(other) {
+            Outcome::Lose
+        } else if self.eq(&other.next()) {
+            Outcome::Win
+        } else {
+            unreachable!()
         }
     }
 }
