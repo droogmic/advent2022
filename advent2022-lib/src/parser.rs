@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-const DELIMETERS: [&str; 6] = ["\n\n", "\n", ",", " ", ":", "-"];
+const DELIMITERS: [&str; 6] = ["\n\n", "\n", ",", " ", ":", "-"];
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Parsed<T> {
@@ -11,7 +11,7 @@ pub enum Parsed<T> {
 
 pub fn read_delim<T: FromStr>(input: &str) -> Result<Parsed<T>, T::Err> {
     log::trace!("input: {input}");
-    let found_delims: Vec<&str> = DELIMETERS
+    let found_delims: Vec<&str> = DELIMITERS
         .into_iter()
         .filter(|&delim| input.contains(delim))
         .collect();
