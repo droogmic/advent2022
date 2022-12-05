@@ -4,12 +4,14 @@ use std::fs;
 use std::num::ParseIntError;
 use std::rc::Rc;
 
+use recap::Error as RecapError;
 use strum::ParseError as StrumParseError;
 
 pub mod day01;
 pub mod day02;
 pub mod day03;
 pub mod day04;
+pub mod day05;
 pub mod parser;
 mod test;
 
@@ -19,6 +21,7 @@ pub enum ParseError {
     Int(ParseIntError),
     Str(String),
     Strum(StrumParseError),
+    Recap(RecapError),
 }
 
 impl From<ParseIntError> for ParseError {
@@ -30,6 +33,12 @@ impl From<ParseIntError> for ParseError {
 impl From<StrumParseError> for ParseError {
     fn from(value: StrumParseError) -> Self {
         Self::Strum(value)
+    }
+}
+
+impl From<RecapError> for ParseError {
+    fn from(value: RecapError) -> Self {
+        Self::Recap(value)
     }
 }
 
@@ -119,6 +128,7 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     days.insert(2, Box::new(day02::DAY));
     days.insert(3, Box::new(day03::DAY));
     days.insert(4, Box::new(day04::DAY));
+    days.insert(5, Box::new(day05::DAY));
     days
 }
 
