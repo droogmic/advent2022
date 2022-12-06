@@ -18,29 +18,24 @@ pub fn parse(input: &str) -> ParseResult<Signal> {
     input.parse()
 }
 
-pub fn part1(signal: &Signal) -> PartOutput<usize> {
-    const WINDOW_SIZE: usize = 4;
-    let first_marker = WINDOW_SIZE
+fn marker(signal: &Signal, window_size: usize) -> usize {
+    window_size
         + signal
             .0
-            .windows(WINDOW_SIZE)
-            .position(|window| window.len() == window.into_iter().collect::<HashSet<_>>().len())
-            .unwrap();
+            .windows(window_size)
+            .position(|window| window.len() == window.iter().collect::<HashSet<_>>().len())
+            .unwrap()
+}
+
+pub fn part1(signal: &Signal) -> PartOutput<usize> {
     PartOutput {
-        answer: first_marker,
+        answer: marker(signal, 4),
     }
 }
 
 pub fn part2(signal: &Signal) -> PartOutput<usize> {
-    const WINDOW_SIZE: usize = 14;
-    let first_marker = WINDOW_SIZE
-        + signal
-            .0
-            .windows(WINDOW_SIZE)
-            .position(|window| window.len() == window.into_iter().collect::<HashSet<_>>().len())
-            .unwrap();
     PartOutput {
-        answer: first_marker,
+        answer: marker(signal, 14),
     }
 }
 
