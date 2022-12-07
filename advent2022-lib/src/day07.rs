@@ -6,7 +6,7 @@ use std::str::FromStr;
 use crate::{Day, DayCalc, ParseError, ParseResult, PartOutput};
 
 #[derive(Debug)]
-pub struct Commands(Vec<Command>);
+struct Commands(Vec<Command>);
 
 impl FromStr for Commands {
     type Err = ParseError;
@@ -26,7 +26,7 @@ impl FromStr for Commands {
 }
 
 #[derive(Debug)]
-pub enum Command {
+enum Command {
     CdRoot,
     CdParent,
     CdChild(String),
@@ -66,7 +66,7 @@ pub struct File {
 }
 
 #[derive(Debug)]
-pub enum DirChild {
+enum DirChild {
     Dir(String),
     File(File),
 }
@@ -89,11 +89,7 @@ impl FromStr for DirChild {
     }
 }
 
-pub fn parse(input: &str) -> ParseResult<Commands> {
-    input.parse()
-}
-
-enum DirNode {
+pub enum DirNode {
     Dir {
         name: String,
         children: Rc<RefCell<Vec<DirNode>>>,
@@ -128,11 +124,9 @@ impl DirNode {
             Self::File(file) => vec![(0, DirChild::File(file.clone()))],
         }
     }
-    fn _size(&self) -> usize {
+    fn size(&self) -> usize {
         match self {
-            DirNode::Dir { children, .. } => {
-                children.borrow().iter().map(|node| node._size()).sum()
-            },
+            DirNode::Dir { children, .. } => children.borrow().iter().map(|node| node.size()).sum(),
             DirNode::File(file) => file.size,
         }
     }
@@ -145,10 +139,10 @@ impl DirNode {
                     match node {
                         Self::Dir { .. } => {
                             let dir_sizes = node.dir_sizes();
-                            parent_size = parent_size + dir_sizes.last().unwrap().1;
+                            parent_size += dir_sizes.last().unwrap().1;
                             retval.extend(dir_sizes.into_iter())
                         },
-                        Self::File(file) => parent_size = parent_size + file.size,
+                        Self::File(file) => parent_size += file.size,
                     }
                 }
                 retval.push((name.to_owned(), parent_size));
@@ -176,7 +170,9 @@ impl Debug for DirNode {
     }
 }
 
-pub fn part1(commands: &Commands) -> PartOutput<usize> {
+fn parse(input: &str) -> ParseResult<DirNode> {
+    let commands: Commands = input.parse()?;
+    log::info!("Commands: {commands:?}");
     let root = DirNode::new_dir(String::from("root"));
     let mut current_path: Vec<Weak<RefCell<Vec<DirNode>>>> = vec![root.dir().unwrap()];
     for command in commands.0.iter().skip(1) {
@@ -206,6 +202,10 @@ pub fn part1(commands: &Commands) -> PartOutput<usize> {
         };
     }
     log::info!("Directory Tree: {root:?}");
+    Ok(root)
+}
+
+pub fn part1(root: &DirNode) -> PartOutput<usize> {
     let dir_sizes = root.dir_sizes();
     log::info!("Directory Sizes: {dir_sizes:?}");
     PartOutput {
@@ -224,15 +224,34 @@ pub fn part1(commands: &Commands) -> PartOutput<usize> {
     }
 }
 
-pub fn part2(commands: &Commands) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(root: &DirNode) -> PartOutput<usize> {
+    const TOTAL_SPACE: usize = 70000000;
+    const REQUIRED_UNUSED_SPACE: usize = 30000000;
+    let used_space = root.size();
+    let unused_space = TOTAL_SPACE - used_space;
+    let space_to_delete = REQUIRED_UNUSED_SPACE - unused_space;
+
+    let mut dir_sizes: Vec<usize> = root
+        .dir_sizes()
+        .into_iter()
+        .map(|(_name, size)| size)
+        .collect();
+    dir_sizes.sort_unstable();
+    let size_to_delete = dir_sizes
+        .into_iter()
+        .find(|s| *s >= space_to_delete)
+        .unwrap();
+
+    PartOutput {
+        answer: size_to_delete,
+    }
 }
 
-pub const DAY: Day<Commands, usize> = Day {
-    title: "TITLE",
+pub const DAY: Day<DirNode, usize> = Day {
+    title: "No Space Left On Device",
     display: (
-        "Foobar foobar foobar {answer}",
-        "Foobar foobar foobar {answer}",
+        "The sum of all the directories with a size of at most 100000 is {answer}",
+        "The size of the directory that can be deleted to free up enough space is {answer}",
     ),
     calc: DayCalc {
         parse,
