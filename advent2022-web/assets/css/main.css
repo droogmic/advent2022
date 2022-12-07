@@ -134,29 +134,32 @@ a:visited {
 .row-item {
   padding: 0;
   margin: 0 1em;
-  align-self: center
+  align-self: center;
 }
 
 .row-item.day-key {
-  flex: 0 1 auto
+  text-decoration: none;
+  flex: 0 1 auto;
+
 }
 
 .row-item.day-title {
-  flex: 1 1 auto
+  text-decoration: none;
+  flex: 1 1 auto;
 }
 
 .row-item.day-url {
-  flex: 0 1 none
+  flex: 0 1 none;
 }
 
 .row-item.day-collapse {
-  flex: 0 1 auto
+  flex: 0 1 auto;
 }
 
 .row-item.day-run {
-  flex: 1 1 auto
+  flex: 1 1 auto;
 }
 
 .row-item.day-upload {
-  flex: 0 1 none
+  flex: 0 1 none;
 }

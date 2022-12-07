@@ -76,9 +76,9 @@ pub fn DayView(props: &DayProps) -> Html {
     html! {
         <section class={if props.day_num & 1 != 0 { "day-odd" } else { "day-even" }}>
             <div class="row">
-                <div class="row-item day-key"><h4>{"Day "}{props.day_num}{":"}</h4></div>
-                <div class="row-item day-title"><h2><em>{props.day.0.get_title()}</em></h2></div>
-                <div class="row-item day-url"><a href={format!("https://github.com/droogmic/advent2022/blob/main/advent2022-lib/src/day{:02}.rs", props.day_num)}>{"Source Code"}</a></div>
+                <a class="row-item day-key" href={format!("https://adventofcode.com/2022/day/{}", props.day_num)}><h4>{"Day "}{props.day_num}{":"}</h4></a>
+                <a class="row-item day-title" href={format!("https://adventofcode.com/2022/day/{}", props.day_num)}><h2><em>{props.day.0.get_title()}</em></h2></a>
+                <a class="row-item day-url" href={format!("https://github.com/droogmic/advent2022/blob/main/advent2022-lib/src/day{:02}.rs", props.day_num)}>{"Source Code"}</a>
             </div>
             <div class="row row-reverse">
                 <FileUpload day_num={props.day_num} file_load_callback={on_file_load} />
