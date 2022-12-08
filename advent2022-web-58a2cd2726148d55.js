@@ -765,7 +765,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('advent2022-web-af2688ec2ac92020_bg.wasm', import.meta.url);
+        input = new URL('advent2022-web-58a2cd2726148d55_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
