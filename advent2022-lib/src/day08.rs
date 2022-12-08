@@ -5,7 +5,8 @@ use crate::{Day, DayCalc, ParseResult, PartOutput};
 #[derive(Debug)]
 pub struct Forest(HashMap<(usize, usize), usize>);
 
-const DIRECTIONS: [(&str, fn(&(usize, usize)) -> (usize, usize)); 4] = [
+type DirectionFunc = fn(&(usize, usize)) -> (usize, usize);
+const DIRECTIONS: [(&str, DirectionFunc); 4] = [
     ("up", |loc: &(usize, usize)| -> (usize, usize) {
         (loc.0 - 1, loc.1)
     }),
