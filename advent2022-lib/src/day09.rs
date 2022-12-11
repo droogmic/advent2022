@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ops::Sub;
 use std::str::FromStr;
 
@@ -37,7 +37,7 @@ impl FromStr for Motion {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (left, right) = s
-            .split_once(" ")
+            .split_once(' ')
             .ok_or(ParseError::Str(format!("unknown motion {s}")))?;
         Ok(Motion {
             direction: left.parse()?,
@@ -106,21 +106,16 @@ impl Pos {
     /// a tail chasing a head
     fn chase(&self, head: &Pos) -> Self {
         let diff = head - self;
-        if diff.x.abs() > 1 && diff.y.abs() > 1 {
-            unreachable!()
+        if diff.x.abs() > 2 || diff.y.abs() > 2 {
+            panic!("{head:?} {self:?}")
         }
-        if diff.x.abs() > 1 {
+        if diff.x.abs() > 1 || diff.y.abs() > 1 {
             Self {
                 x: self.x + diff.x.signum(),
-                y: head.y,
-            }
-        } else if diff.y.abs() > 1 {
-            Self {
-                x: head.x,
                 y: self.y + diff.y.signum(),
             }
         } else {
-            unimplemented!()
+            *self
         }
     }
 }
@@ -144,7 +139,6 @@ fn calc_tails(motions: &Motions, num_tails: usize) -> Vec<HashSet<Pos>> {
     for motion in &motions.0 {
         for _ in 0..motion.distance {
             head = head.step(&motion.direction);
-            tails.first_mut().unwrap().chase(&head);
             let mut front = &head;
             for tail in &mut tails {
                 tail.chase(front);
@@ -156,43 +150,24 @@ fn calc_tails(motions: &Motions, num_tails: usize) -> Vec<HashSet<Pos>> {
 }
 
 pub fn part1(motions: &Motions) -> PartOutput<usize> {
-    let mut head: (isize, isize) = (0, 0);
-    let mut tail = head.clone();
-    let mut map = HashSet::new();
-    map.insert(tail.clone());
-    for motion in &motions.0 {
-        for _ in 0..motion.distance {
-            match motion.direction {
-                Direction::Up => head = (head.0 - 1, head.1),
-                Direction::Down => head = (head.0 + 1, head.1),
-                Direction::Left => head = (head.0, head.1 - 1),
-                Direction::Right => head = (head.0, head.1 + 1),
-            }
-            let diff = (head.0 - tail.0, head.1 - tail.1);
-            if diff.0.abs() > 1 && diff.1.abs() > 1 {
-                unreachable!()
-            }
-            if diff.0.abs() > 1 {
-                tail = (tail.0 + diff.0.signum(), head.1)
-            }
-            if diff.1.abs() > 1 {
-                tail = (head.0, tail.1 + diff.1.signum())
-            }
-            map.insert(tail.clone());
-        }
+    let tail_visited = calc_tails(motions, 1).pop().unwrap();
+    PartOutput {
+        answer: tail_visited.len(),
     }
-    PartOutput { answer: map.len() }
 }
 
-pub fn part2(_something: &Motions) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(motions: &Motions) -> PartOutput<usize> {
+    let tail_visited = calc_tails(motions, 9).pop().unwrap();
+    PartOutput {
+        answer: tail_visited.len(),
+    }
 }
 
 pub const DAY: Day<Motions, usize> = Day {
     title: "Rope Bridge",
     display: (
         "The tail of the rope visits {answer} positions at least once",
-        "Foobar foobar foobar {answer}",
+        "The tail of the longer rope visits {answer} positions at least once",
     ),
     calc: DayCalc {
         parse,
