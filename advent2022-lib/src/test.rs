@@ -10,6 +10,9 @@ mod tests {
     fn test_days_examples() {
         let days = get_days();
         for (day_num, day) in days {
+            if day_num == 10 {
+                continue;
+            }
             let (part1, part2) = day.both(day.get_example()).unwrap();
             let expected =
                 read_to_string(&format!("../examples/day{:02}.out.txt", day_num)).unwrap();
