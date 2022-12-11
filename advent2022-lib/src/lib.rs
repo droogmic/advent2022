@@ -17,6 +17,7 @@ pub mod day07;
 pub mod day08;
 pub mod day09;
 pub mod day10;
+pub mod day11;
 pub mod parser;
 mod test;
 
@@ -139,6 +140,7 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     days.insert(8, Box::new(day08::DAY));
     days.insert(9, Box::new(day09::DAY));
     days.insert(10, Box::new(day10::DAY));
+    days.insert(11, Box::new(day11::DAY));
     days
 }
 
