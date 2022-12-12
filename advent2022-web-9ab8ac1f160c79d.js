@@ -210,7 +210,7 @@ function addBorrowedObject(obj) {
 }
 function __wbg_adapter_22(arg0, arg1, arg2) {
     try {
-        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__ha22045ce9f93fd9d(arg0, arg1, addBorrowedObject(arg2));
+        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h4b9b8a55dcbf3172(arg0, arg1, addBorrowedObject(arg2));
     } finally {
         heap[stack_pointer++] = undefined;
     }
@@ -218,7 +218,7 @@ function __wbg_adapter_22(arg0, arg1, arg2) {
 
 function __wbg_adapter_25(arg0, arg1, arg2) {
     try {
-        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hf784f5d9b90ec41b(arg0, arg1, addBorrowedObject(arg2));
+        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h49d1d4910c957769(arg0, arg1, addBorrowedObject(arg2));
     } finally {
         heap[stack_pointer++] = undefined;
     }
@@ -723,11 +723,11 @@ function getImports() {
         return addHeapObject(ret);
     };
     imports.wbg.__wbindgen_closure_wrapper349 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 170, __wbg_adapter_25);
+        const ret = makeMutClosure(arg0, arg1, 172, __wbg_adapter_25);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper729 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 306, __wbg_adapter_28);
+    imports.wbg.__wbindgen_closure_wrapper732 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 308, __wbg_adapter_28);
         return addHeapObject(ret);
     };
 
@@ -765,7 +765,7 @@ function initSync(module) {
 
 async function init(input) {
     if (typeof input === 'undefined') {
-        input = new URL('advent2022-web-58a2cd2726148d55_bg.wasm', import.meta.url);
+        input = new URL('advent2022-web-9ab8ac1f160c79d_bg.wasm', import.meta.url);
     }
     const imports = getImports();
 
