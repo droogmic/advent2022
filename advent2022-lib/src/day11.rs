@@ -93,16 +93,25 @@ pub fn parse(input: &str) -> ParseResult<Monkeys> {
     input.parse()
 }
 
-pub fn part1(monkeys: &Monkeys) -> PartOutput<usize> {
+fn get_monkey_business(monkeys: Monkeys, rounds: usize, damage_relief: bool) -> usize {
     log::debug!("monkeys={monkeys:?}");
-    let monkeys: Vec<RefCell<Monkey>> = monkeys.0.iter().cloned().map(RefCell::new).collect();
+    let least_common_multiple_divisor: usize = monkeys.0.iter().map(|m| m.divisible).product();
+    let monkeys: Vec<RefCell<Monkey>> = monkeys.0.into_iter().map(RefCell::new).collect();
     let mut inspections: Vec<usize> = vec![0; monkeys.len()];
-    for round in 1..=20 {
+    for round in 1..=rounds {
         for monkey in &monkeys {
             let mut monkey = monkey.borrow_mut();
             while let Some(to_inspect) = monkey.to_inspect.0.pop_front() {
-                let inspection = monkey.operation.apply(&to_inspect);
-                let inspection = Worry(inspection.0.checked_div(3).unwrap());
+                let mut inspection = monkey.operation.apply(&to_inspect);
+                if damage_relief {
+                    inspection = Worry(inspection.0.checked_div(3).unwrap());
+                }
+                inspection = Worry(
+                    inspection
+                        .0
+                        .checked_rem(least_common_multiple_divisor)
+                        .unwrap(),
+                );
                 monkeys
                     .get(
                         if inspection.0.checked_rem_euclid(monkey.divisible).unwrap() == 0 {
@@ -122,21 +131,26 @@ pub fn part1(monkeys: &Monkeys) -> PartOutput<usize> {
         log::debug!("Round {round} inspections={inspections:?}");
     }
     inspections.sort_unstable();
-    let monkey_business = inspections.pop().unwrap() * inspections.pop().unwrap();
+    inspections.pop().unwrap() * inspections.pop().unwrap()
+}
+
+pub fn part1(monkeys: &Monkeys) -> PartOutput<usize> {
     PartOutput {
-        answer: monkey_business,
+        answer: get_monkey_business(monkeys.clone(), 20, true),
     }
 }
 
-pub fn part2(_something: &Monkeys) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(monkeys: &Monkeys) -> PartOutput<usize> {
+    PartOutput {
+        answer: get_monkey_business(monkeys.clone(), 10000, false),
+    }
 }
 
 pub const DAY: Day<Monkeys, usize> = Day {
     title: "Monkey in the Middle",
     display: (
         "The level of monkey business after 20 rounds of stuff-slinging simian shenanigans is {answer}",
-        "Foobar foobar foobar {answer}",
+        "The level of monkey business after 10000 rounds without relief is {answer}",
     ),
     calc: DayCalc {
         parse,
