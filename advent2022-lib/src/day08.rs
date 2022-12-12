@@ -104,7 +104,7 @@ pub fn part2(forest: &Forest) -> PartOutput<usize> {
 }
 
 pub const DAY: Day<Forest, usize> = Day {
-    title: "TITLE",
+    title: "Treetop Tree House",
     display: (
         "{answer} trees are visible from outside the grid",
         "{answer} is the highest scenic score possible for any tree",
