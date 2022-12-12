@@ -70,67 +70,93 @@ struct Node {
     height: Height,
 }
 
-fn pathfind(map: &HeightMap, start: Node) -> Option<(Vec<Node>, usize)> {
+enum Dir {
+    Up,
+    Down,
+}
+
+fn pathfind<HS: FnMut(&Node) -> usize, FS: FnMut(&Node) -> bool>(
+    map: &HashMap<(usize, usize), Height>,
+    start: Node,
+    success: FS,
+    heuristic: HS,
+    dir: Dir,
+) -> Option<(Vec<Node>, usize)> {
     let successors = |n: &Node| -> Vec<(Node, usize)> {
         let mut result = Vec::new();
-        let height = map.map.get(&n.pos).unwrap().0;
+        let height = map.get(&n.pos).unwrap().0;
         for next_pos in [
             (n.pos.0 - 1, n.pos.1),
             (n.pos.0 + 1, n.pos.1),
             (n.pos.0, n.pos.1 - 1),
             (n.pos.0, n.pos.1 + 1),
         ] {
-            if let Some(Height(next_height)) = map.map.get(&next_pos) {
-                if *next_height <= height || height.abs_diff(*next_height) <= 1 {
-                    result.push(Node {
-                        pos: next_pos,
-                        height: *map.map.get(&next_pos).unwrap(),
-                    })
+            if let Some(Height(next_height)) = map.get(&next_pos) {
+                match dir {
+                    Dir::Up => {
+                        if *next_height <= height || height.abs_diff(*next_height) <= 1 {
+                            result.push(Node {
+                                pos: next_pos,
+                                height: *map.get(&next_pos).unwrap(),
+                            })
+                        }
+                    },
+                    Dir::Down => {
+                        if *next_height >= height || next_height.abs_diff(height) <= 1 {
+                            result.push(Node {
+                                pos: next_pos,
+                                height: *map.get(&next_pos).unwrap(),
+                            })
+                        }
+                    },
                 }
             }
         }
         log::debug!("successors {n:?} {result:?}");
         result.into_iter().map(|n| (n, 1)).collect()
     };
-    let heuristic = |n: &Node| -> usize {
-        n.pos.0.abs_diff(map.end.0) + n.pos.1.abs_diff(map.end.1) // manhattan distance
-    };
-    let success = |n: &Node| -> bool {
-        log::debug!("success {:?} <> {:?}", n.pos, map.end);
-        n.pos == map.end
-    };
     fringe(&start, successors, heuristic, success)
 }
 
-pub fn part1(map: &HeightMap) -> PartOutput<usize> {
+pub fn part1(height_map: &HeightMap) -> PartOutput<usize> {
     let start = Node {
-        pos: map.start,
+        pos: height_map.start,
         height: Height::start(),
     };
-    let (path, steps) = pathfind(map, start).unwrap();
+    let heuristic = |n: &Node| -> usize {
+        n.pos.0.abs_diff(height_map.end.0) + n.pos.1.abs_diff(height_map.end.1) // manhattan distance
+    };
+    let success = |n: &Node| -> bool {
+        log::debug!("success {:?} <> {:?}", n.pos, height_map.end);
+        n.pos == height_map.end
+    };
+    let (path, steps) = pathfind(&height_map.map, start, success, heuristic, Dir::Up).unwrap();
     log::debug!("path: {path:?}");
     PartOutput { answer: steps }
 }
 
-pub fn part2(map: &HeightMap) -> PartOutput<usize> {
-    let min_steps = map
+pub fn part2(height_map: &HeightMap) -> PartOutput<usize> {
+    let start = Node {
+        pos: height_map.end,
+        height: Height::end(),
+    };
+    let possible_ends: Vec<(usize, usize)> = height_map
         .map
         .iter()
-        .filter_map(|(pos, height)| {
-            if *height != Height::start() {
-                None
-            } else {
-                let start = Node {
-                    pos: *pos,
-                    height: Height::start(),
-                };
-                let (_path, steps) = pathfind(map, start)?;
-                Some(steps)
-            }
-        })
-        .min()
-        .unwrap();
-    PartOutput { answer: min_steps }
+        .filter_map(|(pos, height)| (*height == Height::start()).then_some(*pos))
+        .collect();
+    let heuristic = |n: &Node| -> usize {
+        // manhattan distance to nearest...
+        possible_ends
+            .iter()
+            .map(|end| n.pos.0.abs_diff(end.0) + n.pos.1.abs_diff(end.1))
+            .min()
+            .unwrap()
+    };
+    let success = |n: &Node| -> bool { n.height == Height::start() };
+    let (path, steps) = pathfind(&height_map.map, start, success, heuristic, Dir::Down).unwrap();
+    log::debug!("path: {path:?}");
+    PartOutput { answer: steps }
 }
 
 pub const DAY: Day<HeightMap, usize> = Day {
