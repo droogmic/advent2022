@@ -138,8 +138,32 @@ fn is_pair_ordered(left_packet: &Packet, right_packet: &Packet) -> Option<bool> 
     }
 }
 
+impl Ord for &Packet {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match is_pair_ordered(self, other) {
+            Some(true) => std::cmp::Ordering::Less,
+            Some(false) => std::cmp::Ordering::Greater,
+            None => std::cmp::Ordering::Equal,
+        }
+    }
+}
+
+impl PartialOrd for &Packet {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for &Packet {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == std::cmp::Ordering::Equal
+    }
+}
+
+impl Eq for &Packet {}
+
 pub fn part1(packet_pairs: &PacketPairs) -> PartOutput<usize> {
-    log::debug!("packet_pairs={packet_pairs:?}");
+    log::info!("packet_pairs={packet_pairs:?}");
     let sum_indices = packet_pairs
         .0
         .iter()
@@ -157,15 +181,33 @@ pub fn part1(packet_pairs: &PacketPairs) -> PartOutput<usize> {
     }
 }
 
-pub fn part2(_something: &PacketPairs) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(packet_pairs: &PacketPairs) -> PartOutput<usize> {
+    let dividers = [
+        Packet::try_from(FlatPacket::from_str("[[2]]").unwrap()).unwrap(),
+        Packet::try_from(FlatPacket::from_str("[[6]]").unwrap()).unwrap(),
+    ];
+    let mut packets: Vec<&Packet> = packet_pairs
+        .0
+        .iter()
+        .flatten()
+        .chain(dividers.iter())
+        .collect();
+    packets.sort_unstable();
+    log::info!("packets={packets:?}");
+    let indices_base_1: Vec<usize> = dividers
+        .iter()
+        .map(|div| packets.binary_search(&div).unwrap() + 1)
+        .collect();
+    PartOutput {
+        answer: indices_base_1.iter().product(),
+    }
 }
 
 pub const DAY: Day<PacketPairs, usize> = Day {
     title: "Distress Signal",
     display: (
         "The sum of the indices of the pairs in the right order are {answer}",
-        "Foobar foobar foobar {answer}",
+        "The decoder key for the distress signal is {answer}",
     ),
     calc: DayCalc {
         parse,
