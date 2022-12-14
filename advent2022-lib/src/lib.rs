@@ -7,19 +7,20 @@ use std::rc::Rc;
 use recap::Error as RecapError;
 use strum::ParseError as StrumParseError;
 
-pub mod day01;
-pub mod day02;
-pub mod day03;
-pub mod day04;
-pub mod day05;
-pub mod day06;
-pub mod day07;
-pub mod day08;
-pub mod day09;
-pub mod day10;
-pub mod day11;
-pub mod day12;
+mod day01;
+mod day02;
+mod day03;
+mod day04;
+mod day05;
+mod day06;
+mod day07;
+mod day08;
+mod day09;
+mod day10;
+mod day11;
+mod day12;
 mod day13;
+mod day14;
 pub mod parser;
 mod test;
 
@@ -145,6 +146,7 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     days.insert(11, Box::new(day11::DAY));
     days.insert(12, Box::new(day12::DAY));
     days.insert(13, Box::new(day13::DAY));
+    days.insert(14, Box::new(day14::DAY));
     days
 }
 
