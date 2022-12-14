@@ -1,3 +1,4 @@
+use std::iter::Peekable;
 use std::str::FromStr;
 
 use crate::{Day, DayCalc, ParseError, ParseResult, PartOutput};
@@ -10,9 +11,9 @@ pub enum Token {
 }
 
 #[derive(Debug)]
-pub struct Packet(Vec<Token>);
+pub struct FlatPacket(Vec<Token>);
 
-impl FromStr for Packet {
+impl FromStr for FlatPacket {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -50,6 +51,35 @@ impl FromStr for Packet {
 }
 
 #[derive(Debug)]
+pub enum Packet {
+    Integer(usize),
+    List(Vec<Packet>),
+}
+
+impl TryFrom<FlatPacket> for Packet {
+    type Error = ParseError;
+
+    fn try_from(value: FlatPacket) -> Result<Self, Self::Error> {
+        fn parse_tokens(tokens: &mut Peekable<impl Iterator<Item = Token>>) -> Packet {
+            match tokens.next().unwrap() {
+                Token::Num(v) => {
+                    return Packet::Integer(v);
+                },
+                Token::Close => unreachable!(),
+                Token::Open => {},
+            }
+            let mut retval = Vec::new();
+            while let Token::Open | Token::Num(_) = tokens.peek().unwrap() {
+                retval.push(parse_tokens(tokens))
+            }
+            let _ = tokens.next();
+            Packet::List(retval)
+        }
+        Ok(parse_tokens(&mut value.0.into_iter().peekable()))
+    }
+}
+
+#[derive(Debug)]
 pub struct PacketPairs(Vec<[Packet; 2]>);
 
 impl FromStr for PacketPairs {
@@ -60,7 +90,10 @@ impl FromStr for PacketPairs {
             s.split("\n\n")
                 .map(|lines| {
                     let (left, right) = lines.split_once('\n').unwrap();
-                    Ok([left.parse()?, right.parse()?])
+                    Ok([
+                        FlatPacket::from_str(left)?.try_into()?,
+                        FlatPacket::from_str(right)?.try_into()?,
+                    ])
                 })
                 .collect::<Result<_, ParseError>>()?,
         ))
@@ -71,83 +104,37 @@ pub fn parse(input: &str) -> ParseResult<PacketPairs> {
     input.parse()
 }
 
-fn is_pair_ordered(left_packet: &Packet, right_packet: &Packet) -> bool {
-    let mut left_tokens = left_packet.0.iter().peekable();
-    let mut right_tokens = right_packet.0.iter().peekable();
-    loop {
-        match (left_tokens.peek(), right_tokens.peek()) {
-            (None, None) => panic!("packet_pair=({left_packet:?},{right_packet:?})"),
-            (None, Some(_)) => break true,
-            (Some(_), None) => break false,
-            (Some(left), Some(right)) if left == right => {
-                _ = left_tokens.next();
-                _ = right_tokens.next();
-            },
-            (Some(Token::Open), Some(Token::Open)) => unreachable!(),
-            (Some(Token::Close), Some(Token::Close)) => unreachable!(),
-            (Some(Token::Num(left)), Some(Token::Num(right))) => {
-                if left < right {
-                    break true;
+fn is_pair_ordered(left_packet: &Packet, right_packet: &Packet) -> Option<bool> {
+    match (left_packet, right_packet) {
+        (Packet::Integer(left), Packet::Integer(right)) => {
+            if left < right {
+                return Some(true);
+            }
+            if left > right {
+                return Some(false);
+            }
+            None
+        },
+        (Packet::Integer(v), Packet::List(_)) => {
+            is_pair_ordered(&Packet::List(vec![Packet::Integer(*v)]), right_packet)
+        },
+        (Packet::List(_), Packet::Integer(v)) => {
+            is_pair_ordered(left_packet, &Packet::List(vec![Packet::Integer(*v)]))
+        },
+        (Packet::List(left), Packet::List(right)) => {
+            for idx in 0..std::cmp::min(left.len(), right.len()) {
+                if let Some(res) = is_pair_ordered(&left[idx], &right[idx]) {
+                    return Some(res);
                 }
-                if left > right {
-                    break false;
-                }
-            },
-            (Some(Token::Close), Some(_)) => break true,
-            (Some(_), Some(Token::Close)) => break false,
-            (Some(Token::Num(left)), Some(Token::Open)) => {
-                let mut opens: usize = 0;
-                while let Some(Token::Open) = right_tokens.peek() {
-                    opens += 1;
-                    let _ = right_tokens.next();
-                }
-                match right_tokens.peek().unwrap() {
-                    Token::Open => unreachable!(),
-                    Token::Close => break false,
-                    Token::Num(right) => {
-                        if left < right {
-                            break true;
-                        }
-                        if left > right {
-                            break false;
-                        }
-                    },
-                }
-                if !right_tokens
-                    .by_ref()
-                    .take(opens)
-                    .all(|token| matches!(token, Token::Close))
-                {
-                    break true;
-                }
-            },
-            (Some(Token::Open), Some(Token::Num(right))) => {
-                let mut opens: usize = 0;
-                while let Some(Token::Open) = left_tokens.peek() {
-                    opens += 1;
-                    let _ = left_tokens.next();
-                }
-                match left_tokens.peek().unwrap() {
-                    Token::Open => unreachable!(),
-                    Token::Close => break false,
-                    Token::Num(left) => {
-                        if left < right {
-                            break true;
-                        }
-                        if left > right {
-                            break false;
-                        }
-                    },
-                }
-                if !left_tokens
-                    .by_ref()
-                    .take(opens)
-                    .all(|token| matches!(token, Token::Close))
-                {
-                    break false;
-                }
-            },
-        }
+            }
+            if left.len() < right.len() {
+                return Some(true);
+            }
+            if left.len() > right.len() {
+                return Some(false);
+            }
+            None
+        },
     }
 }
 
@@ -161,7 +148,7 @@ pub fn part1(packet_pairs: &PacketPairs) -> PartOutput<usize> {
             let result = is_pair_ordered(left_packet, right_packet);
             log::trace!("Pair {}: {:?}, {:?}", idx + 1, left_packet, right_packet);
             log::debug!("Pair {}: {:?}", idx + 1, result);
-            result
+            result.unwrap()
         })
         .map(|(idx, _)| idx + 1)
         .sum();
@@ -195,18 +182,41 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_parse() {
+        let packet: Packet = FlatPacket::from_str("[[9,[10]]]")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        log::info!("packet: {packet:?}")
+    }
+
+    #[test]
     fn test_ordered_1() {
         assert!(is_pair_ordered(
-            &Packet::from_str("[[9,[10]]]").unwrap(),
-            &Packet::from_str("[[[[9,5]]]]").unwrap(),
-        ));
+            &FlatPacket::from_str("[[9,[10]]]")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+            &FlatPacket::from_str("[[[[9,5]]]]")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+        )
+        .unwrap());
     }
 
     #[test]
     fn test_ordered_2() {
         assert!(is_pair_ordered(
-            &Packet::from_str("[[9,[10]]]").unwrap(),
-            &Packet::from_str("[[[[9],5]]]]").unwrap(),
-        ));
+            &FlatPacket::from_str("[[9,[10]]]")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+            &FlatPacket::from_str("[[[[9],5]]]]")
+                .unwrap()
+                .try_into()
+                .unwrap(),
+        )
+        .unwrap());
     }
 }
