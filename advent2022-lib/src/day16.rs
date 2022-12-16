@@ -195,7 +195,7 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
             }
         }
         log::debug!("{} states", states.len());
-        if states.len() > 1_000 {
+        if states.len() > 1_000_000 {
             let best_eventual_pressure_released = states.peek().unwrap().eventual_pressure_released;
             log::debug!("best_eventual_pressure_released {best_eventual_pressure_released}");
             log::debug!(
