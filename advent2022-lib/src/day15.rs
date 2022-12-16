@@ -88,39 +88,100 @@ pub fn parse(input: &str) -> ParseResult<Sensors> {
     input.parse()
 }
 
-// const PART1_Y: isize = 9;
-const PART1_Y: isize = 2_000_000;
+fn coalesce_ranges(ranges: &[RangeInclusive<isize>]) -> Vec<RangeInclusive<isize>> {
+    let mut ranges: Vec<_> = ranges.to_vec();
+    ranges.sort_unstable_by_key(|r| *r.end());
+
+    let mut retval = Vec::new();
+
+    let last = ranges.pop().unwrap();
+    let mut curr_end = *last.end();
+    let mut curr_start = *last.start();
+    while let Some(last) = ranges.pop() {
+        if *last.end() + 1 >= curr_start {
+            // overlap
+            curr_start = std::cmp::min(*last.start(), curr_start);
+        } else {
+            // no overlap
+            retval.push(curr_start..=curr_end);
+            curr_end = *last.end();
+            curr_start = *last.start();
+        }
+    }
+    retval.push(curr_start..=curr_end);
+    retval
+}
+
 pub fn part1(sensors: &Sensors) -> PartOutput<usize> {
     log::info!("sensors={sensors:?}");
-    let mut positions = sensors
+    let y_row: isize = if sensors.0.len() < 20 { 10 } else { 2_000_000 };
+    let ranges: Vec<RangeInclusive<_>> = sensors
         .0
         .iter()
-        .filter_map(|sensor| sensor.y_range(PART1_Y))
-        .flatten()
-        .collect::<HashSet<isize>>();
+        .filter_map(|sensor| sensor.y_range(y_row))
+        .collect();
+    let non_overlapping_ranges = coalesce_ranges(&ranges);
+    let sensor_and_beacon: HashSet<_> = sensors
+        .0
+        .iter()
+        .flat_map(|sensor| {
+            let mut retval = Vec::new();
+            if sensor.beacon.y == y_row {
+                retval.push(sensor.beacon.x)
+            }
+            if sensor.pos.y == y_row {
+                retval.push(sensor.pos.x);
+            }
+            retval
+        })
+        .collect();
+    let positions: usize = non_overlapping_ranges
+        .into_iter()
+        .map(|range| {
+            let to_remove = sensor_and_beacon
+                .iter()
+                .filter(|p| range.contains(p))
+                .count();
+            usize::try_from(range.end() - range.start() + 1).unwrap() - to_remove
+        })
+        .sum();
     log::debug!("positions={positions:?}");
-    for sensor in &sensors.0 {
-        if sensor.beacon.y == PART1_Y {
-            let _ = positions.remove(&sensor.beacon.x);
-        }
-        if sensor.pos.y == PART1_Y {
-            let _ = positions.remove(&sensor.pos.x);
-        }
-    }
-    PartOutput {
-        answer: positions.len(),
-    }
+    PartOutput { answer: positions }
 }
 
 pub fn part2(sensors: &Sensors) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+    let mut beacon_x: Option<usize> = None;
+    let mut beacon_y: Option<usize> = None;
+    let y_range: usize = if sensors.0.len() < 20 { 20 } else { 4_000_000 };
+    for y in 0..=y_range {
+        let ranges: Vec<RangeInclusive<_>> = sensors
+            .0
+            .iter()
+            .filter_map(|sensor| sensor.y_range(y.try_into().unwrap()))
+            .collect();
+        if ranges.is_empty() {
+            continue;
+        }
+        let non_overlapping_ranges = coalesce_ranges(&ranges);
+        if non_overlapping_ranges.len() > 1 {
+            log::debug!("{non_overlapping_ranges:?}");
+            beacon_x = Some(
+                usize::try_from(*non_overlapping_ranges.first().unwrap().start() - 1).unwrap(),
+            );
+            beacon_y = Some(usize::try_from(y).unwrap());
+            break;
+        }
+    }
+    PartOutput {
+        answer: beacon_x.unwrap() * 4_000_000 + beacon_y.unwrap(),
+    }
 }
 
 pub const DAY: Day<Sensors, usize> = Day {
     title: "Beacon Exclusion Zone",
     display: (
         "{answer} positions cannot contain a beacon",
-        "Foobar foobar foobar {answer}",
+        "The tuning frequency is {answer}",
     ),
     calc: DayCalc {
         parse,
@@ -147,5 +208,23 @@ mod tests {
         assert_eq!(sensor.y_range(1).unwrap().into_iter().count(), 3);
         assert_eq!(sensor.y_range(2).unwrap().into_iter().count(), 5);
         assert!(sensor.y_range(21).is_none());
+    }
+
+    #[test]
+    fn test_coalesce_ranges() {
+        let ranges = coalesce_ranges(&[0..=2, 2..=4]);
+        assert_eq!(ranges.len(), 1);
+        assert_eq!(ranges.first().unwrap(), &(0..=4));
+
+        let ranges = coalesce_ranges(&[0..=2, 3..=4]);
+        assert_eq!(ranges.len(), 1);
+        assert_eq!(ranges.first().unwrap(), &(0..=4));
+
+        let ranges = coalesce_ranges(&[0..=2, 3..=4, 1..=7]);
+        assert_eq!(ranges.len(), 1);
+        assert_eq!(ranges.first().unwrap(), &(0..=7));
+
+        let ranges = coalesce_ranges(&[0..=1, 3..=4]);
+        assert_eq!(ranges.len(), 2);
     }
 }
