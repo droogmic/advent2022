@@ -32,7 +32,7 @@ impl FromStr for Pos {
 
 impl Pos {
     const fn distance(&self, other: &Pos) -> usize {
-        return self.x.abs_diff(other.x) + self.y.abs_diff(other.y);
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
 }
 
@@ -168,7 +168,7 @@ pub fn part2(sensors: &Sensors) -> PartOutput<usize> {
             beacon_x = Some(
                 usize::try_from(*non_overlapping_ranges.first().unwrap().start() - 1).unwrap(),
             );
-            beacon_y = Some(usize::try_from(y).unwrap());
+            beacon_y = Some(y);
             break;
         }
     }

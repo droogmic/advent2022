@@ -78,7 +78,7 @@ impl FromStr for Cave {
                     [begin, end] => [begin, end],
                     [_, _, ..] => unreachable!(),
                 };
-                for pos in begin.to(&end) {
+                for pos in begin.to(end) {
                     let _ = map.insert(pos, Fill::Rock);
                 }
             }
@@ -151,7 +151,7 @@ pub fn parse(input: &str) -> ParseResult<Cave> {
 pub fn part1(cave: &Cave) -> PartOutput<usize> {
     let mut cave = cave.clone();
     let mut counter = 0;
-    while let Some(_) = cave.add_sand() {
+    while cave.add_sand().is_some() {
         counter += 1;
     }
     PartOutput { answer: counter }
