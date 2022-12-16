@@ -2,14 +2,7 @@ use std::collections::HashSet;
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
-use crate::{Day, DayCalc, ParseError, ParseResult, PartOutput};
-
-macro_rules! regex {
-    ($re:literal $(,)?) => {{
-        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
-        RE.get_or_init(|| regex::Regex::new($re).unwrap())
-    }};
-}
+use crate::{regex_once, Day, DayCalc, ParseError, ParseResult, PartOutput};
 
 #[derive(Debug, Clone)]
 pub struct Pos {
@@ -21,7 +14,7 @@ impl FromStr for Pos {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = regex!(r#"x=(?P<x>\-?\d+), y=(?P<y>\-?\d+)"#);
+        let re = regex_once!(r#"x=(?P<x>\-?\d+), y=(?P<y>\-?\d+)"#);
         let captures = re.captures(s).unwrap();
         Ok(Self {
             x: captures.name("x").unwrap().as_str().parse()?,
@@ -46,7 +39,7 @@ impl FromStr for Sensor {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = regex!(r#"Sensor at (?P<pos>.+): closest beacon is at (?P<beacon>.+)"#);
+        let re = regex_once!(r#"Sensor at (?P<pos>.+): closest beacon is at (?P<beacon>.+)"#);
         let captures = re.captures(s).unwrap();
         Ok(Self {
             pos: captures.name("pos").unwrap().as_str().parse()?,

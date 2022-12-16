@@ -22,6 +22,7 @@ mod day12;
 mod day13;
 mod day14;
 mod day15;
+mod day16;
 pub mod parser;
 mod test;
 
@@ -149,6 +150,7 @@ pub fn get_days() -> BTreeMap<usize, Box<dyn DayTrait + 'static>> {
     days.insert(13, Box::new(day13::DAY));
     days.insert(14, Box::new(day14::DAY));
     days.insert(15, Box::new(day15::DAY));
+    days.insert(16, Box::new(day16::DAY));
     days
 }
 
@@ -159,4 +161,12 @@ pub fn get_input(day: usize) -> String {
         Err(e) => panic!("Err: {}, inputs/day{:02}.in.txt", e, day),
         Ok(string) => string,
     }
+}
+
+#[macro_export]
+macro_rules! regex_once {
+    ($re:literal $(,)?) => {{
+        static RE: once_cell::sync::OnceCell<regex::Regex> = once_cell::sync::OnceCell::new();
+        RE.get_or_init(|| regex::Regex::new($re).unwrap())
+    }};
 }
