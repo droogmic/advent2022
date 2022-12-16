@@ -83,6 +83,7 @@ impl PartialOrd for Valve {
 
 struct ValveRate(HashMap<ValveId, Valve>);
 
+#[derive(Clone, PartialEq, Eq)]
 struct State {
     pressure_released: usize,
     total_flow_rate: usize,
@@ -90,6 +91,19 @@ struct State {
     valves_open: HashSet<ValveId>,
     valves_closed: BTreeSet<Valve>,
     pos: ValveId,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.eventual_pressure_released
+            .cmp(&other.eventual_pressure_released)
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
 }
 
 impl State {
@@ -168,7 +182,7 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
             .collect(),
     );
 
-    let mut states = vec![State::init(&rates)]; // TODO: make this a heap
+    let mut states = BinaryHeap::from([State::init(&rates)]);
     for minute in 1..=30 {
         let minutes_remaining = 30 - minute;
         let drained = std::mem::take(&mut states);
@@ -182,21 +196,19 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
         }
         log::debug!("{} states", states.len());
         if states.len() > 1_000 {
-            let best_worst_case = states
-                .iter()
-                .map(|s| s.eventual_pressure_released)
-                .max()
-                .unwrap();
-            log::debug!("best_worst_case {best_worst_case}");
+            let best_eventual_pressure_released = states.peek().unwrap().eventual_pressure_released;
+            log::debug!("best_eventual_pressure_released {best_eventual_pressure_released}");
             log::debug!(
-                "first best_case {}",
+                "corresponding best_case {}",
                 states
-                    .first()
+                    .peek()
                     .unwrap()
                     .best_case_pressure_release(minutes_remaining)
             );
             let states_len = states.len();
-            states.retain(|s| s.best_case_pressure_release(minutes_remaining) >= best_worst_case);
+            states.retain(|s| {
+                s.best_case_pressure_release(minutes_remaining) >= best_eventual_pressure_released
+            });
             log::debug!("reduced {} to {} states", states_len, states.len());
         }
     }

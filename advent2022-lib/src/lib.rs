@@ -1,3 +1,5 @@
+#![feature(binary_heap_retain)]
+
 use std::collections::btree_map::BTreeMap;
 use std::fmt::Display;
 use std::fs;
