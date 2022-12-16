@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap, HashSet};
+use std::collections::{BTreeSet, BinaryHeap, HashMap, HashSet};
 use std::str::FromStr;
 
 use crate::{regex_once, Day, DayCalc, ParseError, ParseResult, PartOutput};
@@ -47,9 +47,9 @@ impl FromStr for ValveEntry {
 }
 
 #[derive(Debug)]
-pub struct Valves(Vec<ValveEntry>);
+pub struct ValveEntries(Vec<ValveEntry>);
 
-impl FromStr for Valves {
+impl FromStr for ValveEntries {
     type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -59,91 +59,94 @@ impl FromStr for Valves {
     }
 }
 
-pub fn parse(input: &str) -> ParseResult<Valves> {
+pub fn parse(input: &str) -> ParseResult<ValveEntries> {
     input.parse()
 }
 
-struct ValveRate(HashMap<ValveId, usize>);
+#[derive(Clone, PartialEq, Eq)]
+pub struct Valve {
+    identifier: ValveId,
+    rate: usize,
+}
+
+impl Ord for Valve {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.rate.cmp(&other.rate).reverse()
+    }
+}
+
+impl PartialOrd for Valve {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+struct ValveRate(HashMap<ValveId, Valve>);
 
 struct State {
     pressure_released: usize,
     total_flow_rate: usize,
+    eventual_pressure_released: usize,
     valves_open: HashSet<ValveId>,
+    valves_closed: BTreeSet<Valve>,
     pos: ValveId,
 }
 
 impl State {
-    fn init() -> Self {
+    fn init(rates: &ValveRate) -> Self {
+        let valves_closed: BTreeSet<Valve> = rates.0.values().cloned().collect();
         Self {
             pressure_released: 0,
             total_flow_rate: 0,
+            eventual_pressure_released: 0,
             valves_open: HashSet::new(),
+            valves_closed,
             pos: ValveId(['A', 'A']),
         }
     }
 
-    fn tunnel(&self, new_pos: ValveId) -> Self {
+    fn tunnel(&self, new_pos: ValveId, minutes_remaining: usize) -> Self {
         Self {
             pressure_released: self.pressure_released + self.total_flow_rate,
             total_flow_rate: self.total_flow_rate,
+            eventual_pressure_released: self.pressure_released
+                + minutes_remaining * self.total_flow_rate,
             valves_open: self.valves_open.clone(),
+            valves_closed: self.valves_closed.clone(),
             pos: new_pos,
         }
     }
 
-    fn open_valve(&self, rates: &ValveRate) -> Self {
+    fn open_valve(&self, rates: &ValveRate, minutes_remaining: usize) -> Self {
         let mut valves_open = self.valves_open.clone();
+        let mut valves_closed = self.valves_closed.clone();
         valves_open.insert(self.pos.clone());
+        valves_closed.remove(rates.0.get(&self.pos).unwrap());
+        let total_flow_rate = self.total_flow_rate + rates.0.get(&self.pos).unwrap().rate;
         Self {
             pressure_released: self.pressure_released + self.total_flow_rate,
-            total_flow_rate: self.total_flow_rate + rates.0.get(&self.pos).unwrap(),
+            total_flow_rate,
+            eventual_pressure_released: self.pressure_released
+                + minutes_remaining * total_flow_rate,
             valves_open,
+            valves_closed,
             pos: self.pos.clone(),
         }
     }
 
-    fn _get_total_flow_rate(&self, rates: &ValveRate) -> usize {
-        self.valves_open
+    fn best_case_pressure_release(&self, minutes_remaining: usize) -> usize {
+        let best_valves_remaining_release: usize = self
+            .valves_closed
             .iter()
-            .map(|v| rates.0.get(v).unwrap())
-            .sum::<usize>()
-    }
-
-    fn eventual_pressure_release(&self, minutes_remaining: usize) -> usize {
-        self.pressure_released + minutes_remaining * self.total_flow_rate
-    }
-
-    fn worst_case_pressure_release(&self, rates: &ValveRate, minutes_remaining: usize) -> usize {
-        self.eventual_pressure_release(minutes_remaining)
-    }
-
-    fn unopened(&self, rates: &ValveRate) -> ValveRate {
-        ValveRate(
-            rates
-                .0
-                .iter()
-                .filter(|(v, r)| !self.valves_open.contains(v))
-                .map(|(v, r)| (v.clone(), r.clone()))
-                .collect(),
-        )
-    }
-
-    fn best_case_pressure_release(&self, rates: &ValveRate, minutes_remaining: usize) -> usize {
-        let mut unopened_valves: Vec<(ValveId, usize)> =
-            self.unopened(rates).0.into_iter().collect();
-        unopened_valves.sort_unstable_by_key(|(v, r)| *r);
-        let best_valves_remaining_release: usize = unopened_valves
-            .into_iter()
-            .rev()
             .take(minutes_remaining.checked_div(2).unwrap())
             .enumerate()
-            .map(|(idx, (_v, r))| r * (minutes_remaining - 1 - (2 * idx)))
+            .map(|(idx, v)| v.rate * (minutes_remaining - 1 - (2 * idx)))
             .sum();
-        self.eventual_pressure_release(minutes_remaining) + best_valves_remaining_release
+        self.eventual_pressure_released + best_valves_remaining_release
     }
 }
 
-pub fn part1(valves: &Valves) -> PartOutput<usize> {
+pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
     let adjacency: HashMap<_, _> = valves
         .0
         .iter()
@@ -153,27 +156,35 @@ pub fn part1(valves: &Valves) -> PartOutput<usize> {
         valves
             .0
             .iter()
-            .map(|v| (v.identifier.clone(), v.rate))
+            .map(|v| {
+                (
+                    v.identifier.clone(),
+                    Valve {
+                        identifier: v.identifier.clone(),
+                        rate: v.rate,
+                    },
+                )
+            })
             .collect(),
     );
 
-    let mut states = vec![State::init()]; // TODO: make this a heap
+    let mut states = vec![State::init(&rates)]; // TODO: make this a heap
     for minute in 1..=30 {
         let minutes_remaining = 30 - minute;
         let drained = std::mem::take(&mut states);
         for state in drained {
             for adjacent in adjacency.get(&state.pos).unwrap() {
-                states.push(state.tunnel(adjacent.clone()))
+                states.push(state.tunnel(adjacent.clone(), minutes_remaining))
             }
             if !state.valves_open.contains(&state.pos) {
-                states.push(state.open_valve(&rates))
+                states.push(state.open_valve(&rates, minutes_remaining))
             }
         }
         log::debug!("{} states", states.len());
         if states.len() > 1_000 {
             let best_worst_case = states
                 .iter()
-                .map(|s| s.worst_case_pressure_release(&rates, minutes_remaining))
+                .map(|s| s.eventual_pressure_released)
                 .max()
                 .unwrap();
             log::debug!("best_worst_case {best_worst_case}");
@@ -182,12 +193,10 @@ pub fn part1(valves: &Valves) -> PartOutput<usize> {
                 states
                     .first()
                     .unwrap()
-                    .best_case_pressure_release(&rates, minutes_remaining)
+                    .best_case_pressure_release(minutes_remaining)
             );
             let states_len = states.len();
-            states.retain(|s| {
-                s.best_case_pressure_release(&rates, minutes_remaining) >= best_worst_case
-            });
+            states.retain(|s| s.best_case_pressure_release(minutes_remaining) >= best_worst_case);
             log::debug!("reduced {} to {} states", states_len, states.len());
         }
     }
@@ -197,11 +206,11 @@ pub fn part1(valves: &Valves) -> PartOutput<usize> {
     }
 }
 
-pub fn part2(_something: &Valves) -> PartOutput<usize> {
+pub fn part2(_something: &ValveEntries) -> PartOutput<usize> {
     PartOutput { answer: 0 }
 }
 
-pub const DAY: Day<Valves, usize> = Day {
+pub const DAY: Day<ValveEntries, usize> = Day {
     title: "TITLE",
     display: (
         "Foobar foobar foobar {answer}",
