@@ -108,7 +108,8 @@ impl PartialOrd for State {
 
 impl State {
     fn init(rates: &ValveRate) -> Self {
-        let valves_closed: BTreeSet<Valve> = rates.0.values().cloned().collect();
+        let valves_closed: BTreeSet<Valve> =
+            rates.0.values().filter(|v| v.rate > 0).cloned().collect();
         Self {
             pressure_released: 0,
             total_flow_rate: 0,
@@ -119,12 +120,26 @@ impl State {
         }
     }
 
-    fn tunnel(&self, new_pos: ValveId, minutes_remaining: usize) -> Self {
+    fn noop(self, minutes_remaining: usize) -> Self {
+        let pressure_released = self.pressure_released + self.total_flow_rate;
+        let total_flow_rate = self.total_flow_rate;
         Self {
-            pressure_released: self.pressure_released + self.total_flow_rate,
-            total_flow_rate: self.total_flow_rate,
-            eventual_pressure_released: self.pressure_released
-                + minutes_remaining * self.total_flow_rate,
+            pressure_released,
+            total_flow_rate: total_flow_rate,
+            eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
+            valves_open: self.valves_open,
+            valves_closed: self.valves_closed,
+            pos: self.pos,
+        }
+    }
+
+    fn tunnel(&self, new_pos: ValveId, minutes_remaining: usize) -> Self {
+        let pressure_released = self.pressure_released + self.total_flow_rate;
+        let total_flow_rate = self.total_flow_rate;
+        Self {
+            pressure_released,
+            total_flow_rate,
+            eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
             valves_open: self.valves_open.clone(),
             valves_closed: self.valves_closed.clone(),
             pos: new_pos,
@@ -134,14 +149,14 @@ impl State {
     fn open_valve(&self, rates: &ValveRate, minutes_remaining: usize) -> Self {
         let mut valves_open = self.valves_open.clone();
         let mut valves_closed = self.valves_closed.clone();
-        valves_open.insert(self.pos.clone());
-        valves_closed.remove(rates.0.get(&self.pos).unwrap());
+        assert!(valves_open.insert(self.pos.clone()));
+        assert!(valves_closed.remove(rates.0.get(&self.pos).unwrap()));
+        let pressure_released = self.pressure_released + self.total_flow_rate;
         let total_flow_rate = self.total_flow_rate + rates.0.get(&self.pos).unwrap().rate;
         Self {
-            pressure_released: self.pressure_released + self.total_flow_rate,
+            pressure_released,
             total_flow_rate,
-            eventual_pressure_released: self.pressure_released
-                + minutes_remaining * total_flow_rate,
+            eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
             valves_open,
             valves_closed,
             pos: self.pos.clone(),
@@ -182,20 +197,30 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
             .collect(),
     );
 
+    // A* Best Case
+
+    // BFS
     let mut states = BinaryHeap::from([State::init(&rates)]);
     for minute in 1..=30 {
         let minutes_remaining = 30 - minute;
         let drained = std::mem::take(&mut states);
         for state in drained {
+            if state.valves_closed.is_empty() {
+                states.push(state.noop(minutes_remaining));
+                continue;
+            }
             for adjacent in adjacency.get(&state.pos).unwrap() {
                 states.push(state.tunnel(adjacent.clone(), minutes_remaining))
             }
-            if !state.valves_open.contains(&state.pos) {
+            if state
+                .valves_closed
+                .contains(rates.0.get(&state.pos).unwrap())
+            {
                 states.push(state.open_valve(&rates, minutes_remaining))
             }
         }
         log::debug!("{} states", states.len());
-        if states.len() > 1_000_000 {
+        if states.len() > 1 {
             let best_eventual_pressure_released = states.peek().unwrap().eventual_pressure_released;
             log::debug!("best_eventual_pressure_released {best_eventual_pressure_released}");
             log::debug!(
@@ -211,6 +236,13 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
             });
             log::debug!("reduced {} to {} states", states_len, states.len());
         }
+        log::trace!(
+            "states: {:?}",
+            states
+                .iter()
+                .map(|s| s.pressure_released)
+                .collect::<Vec<_>>()
+        );
     }
     let best_pressure_released = states.iter().map(|s| s.pressure_released).max().unwrap();
     PartOutput {
