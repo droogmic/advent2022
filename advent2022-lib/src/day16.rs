@@ -1,10 +1,24 @@
 use std::collections::{BTreeSet, BinaryHeap, HashMap, HashSet};
+use std::fmt::Display;
 use std::str::FromStr;
+
+use pathfinding::directed::dijkstra::dijkstra_all;
 
 use crate::{regex_once, Day, DayCalc, ParseError, ParseResult, PartOutput};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ValveId([char; 2]);
+impl ValveId {
+    fn start() -> ValveId {
+        ValveId(['A', 'A'])
+    }
+}
+
+impl Display for ValveId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.0[0], self.0[1])
+    }
+}
 
 impl FromStr for ValveId {
     type Err = ParseError;
@@ -59,6 +73,65 @@ impl FromStr for ValveEntries {
     }
 }
 
+impl ValveEntries {
+    fn unit_adjacency(&self) -> HashMap<ValveId, Vec<ValveId>> {
+        self.0
+            .iter()
+            .map(|v| (v.identifier.clone(), v.connections.clone()))
+            .collect()
+    }
+    fn valve_map(&self) -> HashMap<ValveId, Valve> {
+        self.0
+            .iter()
+            .map(|v| {
+                (
+                    v.identifier.clone(),
+                    Valve {
+                        identifier: v.identifier.clone(),
+                        rate: v.rate,
+                    },
+                )
+            })
+            .collect()
+    }
+    fn valve_heap(&self) -> BinaryHeap<Valve> {
+        self.0
+            .iter()
+            .map(|v| Valve {
+                identifier: v.identifier.clone(),
+                rate: v.rate,
+            })
+            .collect()
+    }
+    fn adjacency(&self) -> HashMap<ValveId, Vec<(ValveId, usize)>> {
+        let rates = self.valve_map();
+        let unit_adjacency = self.unit_adjacency();
+        let successors = |node: &ValveId| -> Vec<(ValveId, usize)> {
+            unit_adjacency
+                .get(node)
+                .unwrap()
+                .into_iter()
+                .cloned()
+                .map(|a| (a, 1))
+                .collect()
+        };
+        self.0
+            .iter()
+            .filter(|v| v.rate > 0 || v.identifier == ValveId::start())
+            .map(|v| {
+                (
+                    v.identifier.clone(),
+                    dijkstra_all(&v.identifier, successors)
+                        .into_iter()
+                        .filter(|(end, _)| rates.get(end).unwrap().rate > 0)
+                        .map(|(end, (_parent, cost))| (end, cost))
+                        .collect::<Vec<(ValveId, usize)>>(),
+                )
+            })
+            .collect()
+    }
+}
+
 pub fn parse(input: &str) -> ParseResult<ValveEntries> {
     input.parse()
 }
@@ -81,16 +154,15 @@ impl PartialOrd for Valve {
     }
 }
 
-struct ValveRate(HashMap<ValveId, Valve>);
-
 #[derive(Clone, PartialEq, Eq)]
 struct State {
-    pressure_released: usize,
-    total_flow_rate: usize,
-    eventual_pressure_released: usize,
+    pos: ValveId,
     valves_open: HashSet<ValveId>,
     valves_closed: BTreeSet<Valve>,
-    pos: ValveId,
+    pressure_released: usize,
+    total_flow_rate: usize,
+    minutes_remaining: usize,
+    eventual_pressure_released: usize,
 }
 
 impl Ord for State {
@@ -107,12 +179,13 @@ impl PartialOrd for State {
 }
 
 impl State {
-    fn init(rates: &ValveRate) -> Self {
+    fn init(rates: &HashMap<ValveId, Valve>, minutes_remaining: usize) -> Self {
         let valves_closed: BTreeSet<Valve> =
-            rates.0.values().filter(|v| v.rate > 0).cloned().collect();
+            rates.values().filter(|v| v.rate > 0).cloned().collect();
         Self {
             pressure_released: 0,
             total_flow_rate: 0,
+            minutes_remaining: minutes_remaining,
             eventual_pressure_released: 0,
             valves_open: HashSet::new(),
             valves_closed,
@@ -120,12 +193,14 @@ impl State {
         }
     }
 
-    fn noop(self, minutes_remaining: usize) -> Self {
+    fn _step_noop(self) -> Self {
         let pressure_released = self.pressure_released + self.total_flow_rate;
         let total_flow_rate = self.total_flow_rate;
+        let minutes_remaining = self.minutes_remaining - 1;
         Self {
             pressure_released,
             total_flow_rate: total_flow_rate,
+            minutes_remaining,
             eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
             valves_open: self.valves_open,
             valves_closed: self.valves_closed,
@@ -133,12 +208,30 @@ impl State {
         }
     }
 
-    fn tunnel(&self, new_pos: ValveId, minutes_remaining: usize) -> Self {
-        let pressure_released = self.pressure_released + self.total_flow_rate;
+    fn end_noop(self) -> Self {
+        let pressure_released =
+            self.pressure_released + self.minutes_remaining * self.total_flow_rate;
         let total_flow_rate = self.total_flow_rate;
+        let minutes_remaining = 0;
+        Self {
+            pressure_released,
+            total_flow_rate: total_flow_rate,
+            minutes_remaining,
+            eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
+            valves_open: self.valves_open,
+            valves_closed: self.valves_closed,
+            pos: self.pos,
+        }
+    }
+
+    fn path_tunnel(&self, new_pos: ValveId, minutes_travel: usize) -> Self {
+        let pressure_released = self.pressure_released + minutes_travel * self.total_flow_rate;
+        let total_flow_rate = self.total_flow_rate;
+        let minutes_remaining = self.minutes_remaining - minutes_travel;
         Self {
             pressure_released,
             total_flow_rate,
+            minutes_remaining,
             eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
             valves_open: self.valves_open.clone(),
             valves_closed: self.valves_closed.clone(),
@@ -146,16 +239,22 @@ impl State {
         }
     }
 
-    fn open_valve(&self, rates: &ValveRate, minutes_remaining: usize) -> Self {
+    fn _step_tunnel(&self, new_pos: ValveId) -> Self {
+        self.path_tunnel(new_pos, 1)
+    }
+
+    fn step_open_valve(&self, rates: &HashMap<ValveId, Valve>) -> Self {
         let mut valves_open = self.valves_open.clone();
         let mut valves_closed = self.valves_closed.clone();
         assert!(valves_open.insert(self.pos.clone()));
-        assert!(valves_closed.remove(rates.0.get(&self.pos).unwrap()));
+        assert!(valves_closed.remove(rates.get(&self.pos).unwrap()));
         let pressure_released = self.pressure_released + self.total_flow_rate;
-        let total_flow_rate = self.total_flow_rate + rates.0.get(&self.pos).unwrap().rate;
+        let total_flow_rate = self.total_flow_rate + rates.get(&self.pos).unwrap().rate;
+        let minutes_remaining = self.minutes_remaining - 1;
         Self {
             pressure_released,
             total_flow_rate,
+            minutes_remaining,
             eventual_pressure_released: pressure_released + minutes_remaining * total_flow_rate,
             valves_open,
             valves_closed,
@@ -176,75 +275,103 @@ impl State {
 }
 
 pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
-    let adjacency: HashMap<_, _> = valves
-        .0
-        .iter()
-        .map(|v| (v.identifier.clone(), v.connections.clone()))
-        .collect();
-    let rates = ValveRate(
-        valves
-            .0
-            .iter()
-            .map(|v| {
-                (
-                    v.identifier.clone(),
-                    Valve {
-                        identifier: v.identifier.clone(),
-                        rate: v.rate,
-                    },
-                )
-            })
-            .collect(),
-    );
+    const MINUTES: usize = 30;
+    let unit_adjacency = valves.unit_adjacency();
+    let rates_map = valves.valve_map();
+    let adjacency = valves.adjacency();
+    log::debug!("adjacency {adjacency:?}");
 
-    // A* Best Case
+    // Some Best Case
+    // let mut path = Vec::from([State::init(&rates_map, MINUTES)]);
+    // let mut rates_heap = valves.valve_heap();
+    // loop {
+    //     let next = if let Some(next) = rates_heap.pop() {
+    //         next
+    //     } else {
+    //         break;
+    //     };
+    //     let distance = adjacency.get(&path.last().unwrap().pos).unwrap().into_iter().find(|(valve_id, _rate) {
+    //         valve_id == next
+    //     }).unwrap().1;
+    // }
 
     // BFS
-    let mut states = BinaryHeap::from([State::init(&rates)]);
-    for minute in 1..=30 {
-        let minutes_remaining = 30 - minute;
-        let drained = std::mem::take(&mut states);
-        for state in drained {
-            if state.valves_closed.is_empty() {
-                states.push(state.noop(minutes_remaining));
-                continue;
-            }
-            for adjacent in adjacency.get(&state.pos).unwrap() {
-                states.push(state.tunnel(adjacent.clone(), minutes_remaining))
-            }
-            if state
-                .valves_closed
-                .contains(rates.0.get(&state.pos).unwrap())
-            {
-                states.push(state.open_valve(&rates, minutes_remaining))
-            }
-        }
-        log::debug!("{} states", states.len());
-        if states.len() > 1 {
-            let best_eventual_pressure_released = states.peek().unwrap().eventual_pressure_released;
+    let mut states_by_minute = vec![BinaryHeap::new(); MINUTES + 1];
+    states_by_minute[0] = BinaryHeap::from([State::init(&rates_map, MINUTES)]);
+    let mut final_states = BinaryHeap::new();
+
+    // First position
+    let first_state = states_by_minute.first().unwrap().peek().unwrap();
+    if rates_map.get(&first_state.pos).unwrap().rate > 0 {
+        let second_state = first_state.step_open_valve(&rates_map);
+        states_by_minute[1].push(second_state);
+    }
+
+    for minute in 0..=MINUTES - 1 {
+        let minutes_remaining = MINUTES - minute;
+        let mut starting_states = std::mem::take(&mut states_by_minute[minute]);
+
+        if starting_states.len() > 1 {
+            let best_eventual_pressure_released =
+                starting_states.peek().unwrap().eventual_pressure_released;
             log::debug!("best_eventual_pressure_released {best_eventual_pressure_released}");
             log::debug!(
                 "corresponding best_case {}",
-                states
+                starting_states
                     .peek()
                     .unwrap()
                     .best_case_pressure_release(minutes_remaining)
             );
-            let states_len = states.len();
-            states.retain(|s| {
+            let states_len = starting_states.len();
+            starting_states.retain(|s| {
                 s.best_case_pressure_release(minutes_remaining) >= best_eventual_pressure_released
             });
-            log::debug!("reduced {} to {} states", states_len, states.len());
+            log::debug!("reduced {} to {} states", states_len, starting_states.len());
         }
+
+        for state in &starting_states {
+            // end
+            if state.valves_closed.is_empty() {
+                final_states.push(state.clone().end_noop());
+                continue;
+            }
+            // adjacents
+            let adjacents = adjacency.get(&state.pos).unwrap();
+            if adjacents
+                .iter()
+                .all(|(_a, distance)| *distance + 1 > minutes_remaining)
+            {
+                final_states.push(state.clone().end_noop());
+                continue;
+            }
+            for (adjacent, distance) in adjacents {
+                if *distance + 1 > minutes_remaining {
+                    continue;
+                }
+                if state.valves_open.contains(adjacent) {
+                    continue;
+                }
+                states_by_minute[minute + distance + 1].push(
+                    state
+                        .path_tunnel(adjacent.clone(), *distance)
+                        .step_open_valve(&rates_map),
+                )
+            }
+        }
+
         log::trace!(
             "states: {:?}",
-            states
+            starting_states
                 .iter()
                 .map(|s| s.pressure_released)
                 .collect::<Vec<_>>()
         );
     }
-    let best_pressure_released = states.iter().map(|s| s.pressure_released).max().unwrap();
+    let best_pressure_released = final_states
+        .iter()
+        .map(|s| s.pressure_released)
+        .max()
+        .unwrap();
     PartOutput {
         answer: best_pressure_released,
     }
@@ -267,3 +394,18 @@ pub const DAY: Day<ValveEntries, usize> = Day {
     },
     example: include_str!("../../examples/day16.in.txt"),
 };
+
+#[cfg(test)]
+mod tests {
+    use test_log::test;
+
+    use super::*;
+    use crate::get_input;
+
+    #[test]
+    fn test_example_part1() {
+        let entries = parse(DAY.example).unwrap();
+        let result = part1(&entries);
+        assert_eq!(result.answer, 1651);
+    }
+}
