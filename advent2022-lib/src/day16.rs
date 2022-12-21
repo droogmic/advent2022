@@ -94,7 +94,7 @@ impl ValveEntries {
             })
             .collect()
     }
-    fn valve_heap(&self) -> BinaryHeap<Valve> {
+    fn _valve_heap(&self) -> BinaryHeap<Valve> {
         self.0
             .iter()
             .map(|v| Valve {
@@ -274,41 +274,22 @@ impl State {
     }
 }
 
-pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
-    const MINUTES: usize = 30;
-    let unit_adjacency = valves.unit_adjacency();
+fn bfs(valves: &ValveEntries, total_minutes: usize) -> BinaryHeap<State> {
     let rates_map = valves.valve_map();
     let adjacency = valves.adjacency();
     log::debug!("adjacency {adjacency:?}");
 
-    // Some Best Case
-    // let mut path = Vec::from([State::init(&rates_map, MINUTES)]);
-    // let mut rates_heap = valves.valve_heap();
-    // loop {
-    //     let next = if let Some(next) = rates_heap.pop() {
-    //         next
-    //     } else {
-    //         break;
-    //     };
-    //     let distance = adjacency.get(&path.last().unwrap().pos).unwrap().into_iter().find(|(valve_id, _rate) {
-    //         valve_id == next
-    //     }).unwrap().1;
-    // }
-
-    // BFS
-    let mut states_by_minute = vec![BinaryHeap::new(); MINUTES + 1];
-    states_by_minute[0] = BinaryHeap::from([State::init(&rates_map, MINUTES)]);
+    let mut states_by_minute = vec![BinaryHeap::new(); total_minutes + 1];
+    states_by_minute[0] = BinaryHeap::from([State::init(&rates_map, total_minutes)]);
     let mut final_states = BinaryHeap::new();
-
     // First position
     let first_state = states_by_minute.first().unwrap().peek().unwrap();
     if rates_map.get(&first_state.pos).unwrap().rate > 0 {
         let second_state = first_state.step_open_valve(&rates_map);
         states_by_minute[1].push(second_state);
     }
-
-    for minute in 0..=MINUTES - 1 {
-        let minutes_remaining = MINUTES - minute;
+    for minute in 0..=total_minutes - 1 {
+        let minutes_remaining = total_minutes - minute;
         let mut starting_states = std::mem::take(&mut states_by_minute[minute]);
 
         if starting_states.len() > 1 {
@@ -367,6 +348,92 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
                 .collect::<Vec<_>>()
         );
     }
+    final_states
+}
+
+fn bfs_with_elephant(valves: &ValveEntries, total_minutes: usize) -> BinaryHeap<State> {
+    let rates_map = valves.valve_map();
+    let adjacency = valves.adjacency();
+    log::debug!("adjacency {adjacency:?}");
+
+    let mut states_by_minute = vec![(BinaryHeap::new(), BinaryHeap::new()); total_minutes + 1];
+    states_by_minute[0] = (
+        BinaryHeap::from([(State::init(&rates_map, total_minutes))]),
+        BinaryHeap::from([(State::init(&rates_map, total_minutes))]),
+    );
+    let mut final_states = (BinaryHeap::new(), BinaryHeap::new());
+    // First position
+    let first_state = states_by_minute.first().unwrap().0.peek().unwrap();
+    if rates_map.get(&first_state.pos).unwrap().rate > 0 {
+        let second_state = first_state.step_open_valve(&rates_map);
+        states_by_minute[1].push(second_state);
+    }
+    for minute in 0..=total_minutes - 1 {
+        let minutes_remaining = total_minutes - minute;
+        let mut starting_states = std::mem::take(&mut states_by_minute[minute]);
+
+        if starting_states.len() > 1 {
+            let best_eventual_pressure_released =
+                starting_states.peek().unwrap().eventual_pressure_released;
+            log::debug!("best_eventual_pressure_released {best_eventual_pressure_released}");
+            log::debug!(
+                "corresponding best_case {}",
+                starting_states
+                    .peek()
+                    .unwrap()
+                    .best_case_pressure_release(minutes_remaining)
+            );
+            let states_len = starting_states.len();
+            starting_states.retain(|s| {
+                s.best_case_pressure_release(minutes_remaining) >= best_eventual_pressure_released
+            });
+            log::debug!("reduced {} to {} states", states_len, starting_states.len());
+        }
+
+        for state in &starting_states {
+            // end
+            if state.valves_closed.is_empty() {
+                final_states.push(state.clone().end_noop());
+                continue;
+            }
+            // adjacents
+            let adjacents = adjacency.get(&state.pos).unwrap();
+            if adjacents
+                .iter()
+                .all(|(_a, distance)| *distance + 1 > minutes_remaining)
+            {
+                final_states.push(state.clone().end_noop());
+                continue;
+            }
+            for (adjacent, distance) in adjacents {
+                if *distance + 1 > minutes_remaining {
+                    continue;
+                }
+                if state.valves_open.contains(adjacent) {
+                    continue;
+                }
+                states_by_minute[minute + distance + 1].push(
+                    state
+                        .path_tunnel(adjacent.clone(), *distance)
+                        .step_open_valve(&rates_map),
+                )
+            }
+        }
+
+        log::trace!(
+            "states: {:?}",
+            starting_states
+                .iter()
+                .map(|s| s.pressure_released)
+                .collect::<Vec<_>>()
+        );
+    }
+    final_states
+}
+
+pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
+    const MINUTES: usize = 30;
+    let final_states = bfs(valves, MINUTES);
     let best_pressure_released = final_states
         .iter()
         .map(|s| s.pressure_released)
@@ -377,14 +444,23 @@ pub fn part1(valves: &ValveEntries) -> PartOutput<usize> {
     }
 }
 
-pub fn part2(_something: &ValveEntries) -> PartOutput<usize> {
-    PartOutput { answer: 0 }
+pub fn part2(valves: &ValveEntries) -> PartOutput<usize> {
+    const MINUTES: usize = 30;
+    let final_states = bfs_with_elephant(valves, MINUTES);
+    let best_pressure_released = final_states
+        .iter()
+        .map(|s| s.pressure_released)
+        .max()
+        .unwrap();
+    PartOutput {
+        answer: best_pressure_released,
+    }
 }
 
 pub const DAY: Day<ValveEntries, usize> = Day {
-    title: "TITLE",
+    title: "Proboscidea Volcanium",
     display: (
-        "Foobar foobar foobar {answer}",
+        "The most pressure that can be released is {answer}",
         "Foobar foobar foobar {answer}",
     ),
     calc: DayCalc {
@@ -400,12 +476,14 @@ mod tests {
     use test_log::test;
 
     use super::*;
-    use crate::get_input;
 
     #[test]
-    fn test_example_part1() {
+    fn test_example_bfs() {
         let entries = parse(DAY.example).unwrap();
-        let result = part1(&entries);
-        assert_eq!(result.answer, 1651);
+        let result = bfs(&entries, 30);
+        assert_eq!(
+            result.iter().map(|s| s.pressure_released).max().unwrap(),
+            1651
+        );
     }
 }
