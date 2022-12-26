@@ -18,8 +18,14 @@ mod tests {
                 read_to_string(&format!("../examples/day{:02}.out.txt", day_num)).unwrap();
             let expected_part1 = expected.lines().next().unwrap();
             let expected_part2 = expected.lines().last().unwrap();
-            assert_eq!(part1, expected_part1);
-            assert_eq!(part2, expected_part2)
+            assert_eq!(
+                part1, expected_part1,
+                "day {day_num} part 1 example mismatch"
+            );
+            assert_eq!(
+                part2, expected_part2,
+                "day {day_num} part 2 example mismatch"
+            )
         }
     }
 }
